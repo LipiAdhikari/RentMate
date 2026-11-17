@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', $monthlyRecord->formatted_month . ' Statement')
-@section('page_title', $monthlyRecord->formatted_month . ' Rental Details')
+@section('title', $monthlyRecord->dual_month_label . ' Statement')
+@section('page_title', $monthlyRecord->dual_month_label . ' Rental Details')
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
@@ -14,15 +14,15 @@
             </a>
             <div>
                 <div class="flex items-center gap-2">
-                    <h2 class="text-xl font-bold text-slate-900">{{ $monthlyRecord->formatted_month }}</h2>
+                    <h2 class="text-xl font-bold text-slate-900">{{ $monthlyRecord->dual_month_label }}</h2>
                     <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $monthlyRecord->status_badge_class }}">
                         {{ $monthlyRecord->status_label }}
                     </span>
                     @if($monthlyRecord->is_historical)
-                        <span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-500 border border-slate-200 font-medium">Historical Record</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-500 border border-slate-200 font-medium">Historical</span>
                     @endif
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">Recorded for period: {{ $monthlyRecord->record_date->format('F 01, Y') }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">Due Date: {{ $monthlyRecord->due_date ? $monthlyRecord->due_date->format('F d, Y') : 'End of month' }}</p>
             </div>
         </div>
 
@@ -35,17 +35,37 @@
                 <i data-lucide="edit-3" class="w-4 h-4 text-slate-500"></i>
                 <span>Edit</span>
             </a>
-            <button type="button" onclick="confirmDelete('{{ route('monthly-records.destroy', $monthlyRecord) }}', 'Delete {{ $monthlyRecord->formatted_month }}? This will remove all associated payment logs.')" class="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1.5">
+            <button type="button" onclick="confirmDelete('{{ route('monthly-records.destroy', $monthlyRecord) }}', 'Delete {{ $monthlyRecord->dual_month_label }}? This will remove all associated payment logs.')" class="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1.5">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                 <span>Delete</span>
             </button>
         </div>
     </div>
 
+    <!-- Settlement Timing & 1-Month Clearance Banner -->
+    @if($monthlyRecord->settlement_notes)
+        <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-800 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="check-check" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-emerald-950 text-sm">Rent Clearance Status</h4>
+                    <p class="text-emerald-800 mt-0.5 font-medium">{{ $monthlyRecord->settlement_notes }}</p>
+                </div>
+            </div>
+            @if($monthlyRecord->cleared_at)
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white text-emerald-700 border border-emerald-200 shadow-2xs">
+                    Cleared on {{ $monthlyRecord->cleared_at->format('M d, Y') }}
+                </span>
+            @endif
+        </div>
+    @endif
+
     <!-- Print-only invoice header -->
     <div class="hidden print-only bg-white p-6 border-b border-slate-300">
         <h1 class="text-2xl font-bold text-slate-900">RentMate Statement</h1>
-        <p class="text-sm text-slate-600">Month: {{ $monthlyRecord->formatted_month }}</p>
+        <p class="text-sm text-slate-600">Month: {{ $monthlyRecord->dual_month_label }}</p>
         <p class="text-xs text-slate-500">Property: {{ $settings->property_address ?? 'Kathmandu, Nepal' }}</p>
     </div>
 
@@ -73,7 +93,7 @@
                 NPR {{ number_format($monthlyRecord->balance, 2) }}
             </div>
             <div class="text-[11px] mt-1 font-semibold {{ $monthlyRecord->balance > 0 ? 'text-rose-500' : 'text-emerald-500' }}">
-                {{ $monthlyRecord->balance > 0 ? 'Payment Pending' : 'Fully Settled' }}
+                {{ $monthlyRecord->balance > 0 ? 'Payment Pending' : '1 Month Rent Settled' }}
             </div>
         </div>
     </div>
@@ -180,7 +200,7 @@
             <div>
                 <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                     <i data-lucide="wallet" class="w-4 h-4 text-emerald-600"></i>
-                    <span>Payments for {{ $monthlyRecord->formatted_month }}</span>
+                    <span>Payments for {{ $monthlyRecord->dual_month_label }}</span>
                 </h3>
                 <p class="text-xs text-slate-500">Supports single and multiple installment payments</p>
             </div>
@@ -193,7 +213,8 @@
             <table class="w-full text-left text-xs">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
-                        <th class="py-3 px-4">Payment Date</th>
+                        <th class="py-3 px-4">Payment Date (AD & BS)</th>
+                        <th class="py-3 px-4">Timing</th>
                         <th class="py-3 px-4">Payment Method</th>
                         <th class="py-3 px-4">Transaction Ref</th>
                         <th class="py-3 px-4">Notes</th>
@@ -205,7 +226,19 @@
                     @forelse($monthlyRecord->payments as $payment)
                         <tr class="hover:bg-slate-50 transition">
                             <td class="py-3 px-4 font-semibold text-slate-800">
-                                {{ $payment->payment_date->format('M d, Y') }}
+                                <div>{{ $payment->payment_date->format('M d, Y') }}</div>
+                                <div class="text-[10px] text-teal-700">{{ $payment->bs_payment_date }}</div>
+                            </td>
+                            <td class="py-3 px-4">
+                                @if($payment->days_late > 0)
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                        +{{ $payment->days_late }} days late
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                        On-time
+                                    </span>
+                                @endif
                             </td>
                             <td class="py-3 px-4">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold border {{ $payment->method_badge_class }}">
@@ -229,7 +262,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-8 text-center text-slate-400">
+                            <td colspan="7" class="py-8 text-center text-slate-400">
                                 <i data-lucide="credit-card" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
                                 <span>No payment transactions logged for this month yet.</span>
                             </td>

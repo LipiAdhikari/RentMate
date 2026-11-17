@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Monthly Records')
-@section('page_title', 'Monthly Rental Records')
+@section('page_title', 'Monthly Rental Records (Bilingual BS & AD)')
 
 @section('content')
 <div class="space-y-6">
@@ -11,10 +11,19 @@
         <!-- Filter Form -->
         <form method="GET" action="{{ route('monthly-records.index') }}" class="flex flex-wrap items-center gap-3">
             <div>
+                <select name="bs_year" class="text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border font-medium">
+                    <option value="">All BS Years (वि.सं.)</option>
+                    @foreach($availableBsYears as $byr)
+                        <option value="{{ $byr }}" {{ request('bs_year') == $byr ? 'selected' : '' }}>Year {{ $byr }} BS ({{ \App\Services\NepaliCalendar::toNepaliNumerals($byr) }})</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
                 <select name="year" class="text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
-                    <option value="">All Years</option>
+                    <option value="">All AD Years</option>
                     @foreach($availableYears as $yr)
-                        <option value="{{ $yr }}" {{ request('year') == $yr ? 'selected' : '' }}>Year {{ $yr }}</option>
+                        <option value="{{ $yr }}" {{ request('year') == $yr ? 'selected' : '' }}>Year {{ $yr }} AD</option>
                     @endforeach
                 </select>
             </div>
@@ -24,7 +33,7 @@
                     <option value="">All Payment Statuses</option>
                     <option value="unpaid" {{ request('status') === 'unpaid' ? 'selected' : '' }}>Unpaid</option>
                     <option value="partially_paid" {{ request('status') === 'partially_paid' ? 'selected' : '' }}>Partially Paid</option>
-                    <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>Fully Paid</option>
+                    <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>Fully Paid (1 Mo)</option>
                     <option value="overpaid" {{ request('status') === 'overpaid' ? 'selected' : '' }}>Overpaid</option>
                 </select>
             </div>
@@ -33,7 +42,7 @@
                 Filter
             </button>
 
-            @if(request()->hasAny(['year', 'status']))
+            @if(request()->hasAny(['year', 'bs_year', 'status']))
                 <a href="{{ route('monthly-records.index') }}" class="text-xs text-rose-600 hover:text-rose-700 font-medium">
                     Clear Filters
                 </a>
@@ -55,7 +64,7 @@
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
-                        <th class="py-3.5 px-4">Month / Year</th>
+                        <th class="py-3.5 px-4">Rental Period (BS & AD)</th>
                         <th class="py-3.5 px-4">Rent</th>
                         <th class="py-3.5 px-4">Electricity (Units)</th>
                         <th class="py-3.5 px-4">Water (50%)</th>
@@ -63,7 +72,7 @@
                         <th class="py-3.5 px-4">Total Expenses</th>
                         <th class="py-3.5 px-4">Total Paid</th>
                         <th class="py-3.5 px-4">Balance Due</th>
-                        <th class="py-3.5 px-4">Status</th>
+                        <th class="py-3.5 px-4">Status & Clearance</th>
                         <th class="py-3.5 px-4 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -72,12 +81,18 @@
                         <tr class="hover:bg-slate-50/70 transition">
                             <td class="py-4 px-4 font-bold text-slate-800">
                                 <a href="{{ route('monthly-records.show', $rec) }}" class="hover:text-teal-600 transition flex items-center gap-1.5">
-                                    <span>{{ $rec->formatted_month }}</span>
+                                    <span>{{ $rec->dual_month_label }}</span>
                                     @if($rec->is_historical)
                                         <span class="px-1.5 py-0.5 rounded text-[9px] bg-slate-100 text-slate-500 border border-slate-200 font-normal">Historical</span>
                                     @endif
                                 </a>
-                                <span class="text-[10px] text-slate-400 block font-normal">{{ $rec->record_date->format('M 01, Y') }}</span>
+                                @if($rec->settlement_notes)
+                                    <span class="text-[10px] text-teal-700 font-normal block mt-0.5">
+                                        ✓ {{ $rec->settlement_notes }}
+                                    </span>
+                                @else
+                                    <span class="text-[10px] text-slate-400 block font-normal">Due: {{ $rec->due_date ? $rec->due_date->format('M d, Y') : 'End of month' }}</span>
+                                @endif
                             </td>
                             <td class="py-4 px-4 font-medium text-slate-700">
                                 NPR {{ number_format($rec->rent_amount, 2) }}
@@ -103,9 +118,11 @@
                                 NPR {{ number_format($rec->balance, 2) }}
                             </td>
                             <td class="py-4 px-4">
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border {{ $rec->status_badge_class }}">
-                                    {{ $rec->status_label }}
-                                </span>
+                                <div>
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border {{ $rec->status_badge_class }}">
+                                        {{ $rec->status_label }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="py-4 px-4 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
@@ -118,7 +135,7 @@
                                     <a href="{{ route('monthly-records.edit', $rec) }}" title="Edit Record" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition">
                                         <i data-lucide="edit-3" class="w-4 h-4"></i>
                                     </a>
-                                    <button type="button" onclick="confirmDelete('{{ route('monthly-records.destroy', $rec) }}', 'Delete record for {{ $rec->formatted_month }}? All linked payments will also be deleted.')" title="Delete Record" class="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition">
+                                    <button type="button" onclick="confirmDelete('{{ route('monthly-records.destroy', $rec) }}', 'Delete record for {{ $rec->dual_month_label }}? All linked payments will also be deleted.')" title="Delete Record" class="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition">
                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
                                 </div>

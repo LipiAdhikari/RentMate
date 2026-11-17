@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MonthlyRecord;
 use App\Models\Payment;
 use App\Models\RentalSetting;
+use App\Services\NepaliCalendar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -16,6 +17,7 @@ class DashboardController extends Controller
         $now = Carbon::now();
         $currentYear = $now->year;
         $currentMonth = $now->month;
+        $todayBs = NepaliCalendar::today();
 
         // Current month record
         $currentMonthRecord = MonthlyRecord::with(['payments', 'additionalExpenses'])
@@ -36,7 +38,7 @@ class DashboardController extends Controller
         $allTimeElectricity = (float) MonthlyRecord::sum('electricity_amount');
         $allTimeWater = (float) MonthlyRecord::sum('water_amount');
 
-        // Unpaid or partially paid months
+        // Unpaid or partially paid months (sorted oldest to newest so oldest pending comes first)
         $unpaidRecords = MonthlyRecord::with('payments')
             ->whereIn('status', ['unpaid', 'partially_paid'])
             ->orderBy('record_date', 'asc')
@@ -49,7 +51,7 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
-        // Monthly trends for Chart.js (last 12 months ordered chronologically)
+        // Monthly trends for Chart.js (ordered chronologically)
         $historyRecords = MonthlyRecord::orderBy('record_date', 'asc')
             ->limit(12)
             ->get();
@@ -63,7 +65,8 @@ class DashboardController extends Controller
         $chartUnits = [];
 
         foreach ($historyRecords as $rec) {
-            $chartLabels[] = $rec->short_month;
+            $monthInfo = NepaliCalendar::MONTHS[$rec->bs_month ?? 8] ?? ['en' => 'Mangsir', 'np' => ''];
+            $chartLabels[] = $monthInfo['en'] . ' (' . $rec->short_month . ')';
             $chartRent[] = (float) $rec->rent_amount;
             $chartElectricity[] = (float) $rec->electricity_amount;
             $chartWater[] = (float) $rec->water_amount;
@@ -74,6 +77,7 @@ class DashboardController extends Controller
 
         return view('dashboard.index', compact(
             'settings',
+            'todayBs',
             'currentMonthRecord',
             'activeDisplayRecord',
             'allTimeExpenses',

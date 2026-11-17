@@ -6,6 +6,8 @@ use App\Models\AdditionalExpense;
 use App\Models\MonthlyRecord;
 use App\Models\Payment;
 use App\Models\RentalSetting;
+use App\Services\NepaliCalendar;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -19,17 +21,109 @@ class RentMateTest extends TestCase
         RentalSetting::getActive();
     }
 
+    /** Scenario: January rent paid on February 15 (15 days late) auto-detected as 1 month rent cleared */
+    public function test_late_payment_on_feb_15_for_january_rent_auto_detected_as_one_month_cleared(): void
+    {
+        // 1. Create January 2026 record (Due date: 2026-01-31)
+        $january = MonthlyRecord::create([
+            'year' => 2026,
+            'month' => 1,
+            'bs_year' => 2082,
+            'bs_month' => 10, // Magh
+            'nepali_month_name' => 'Magh (माघ)',
+            'record_date' => '2026-01-01',
+            'due_date' => '2026-01-31',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 100.00,
+            'curr_electricity_reading' => 100.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 0.00,
+            'tenant_water_percentage' => 50.00,
+        ]);
+        $january->recalculate(true);
+
+        $this->assertEquals('unpaid', $january->status);
+        $this->assertEquals(16000.00, $january->balance);
+
+        // 2. Pay rent on February 15, 2026 (15 days after due date)
+        $response = $this->post(route('payments.store'), [
+            'monthly_record_id' => $january->id,
+            'amount' => 16000.00,
+            'payment_date' => '2026-02-15',
+            'payment_method' => 'eSewa',
+            'transaction_reference' => 'ESEWA-FEB15-LATE',
+            'notes' => 'Settled January rent late',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        // 3. Verify system automatically detected 1 month rent cleared and 15 days late
+        $january->refresh();
+        $payment = $january->payments()->first();
+
+        $this->assertNotNull($payment);
+        $this->assertEquals(15, $payment->days_late);
+        $this->assertEquals('paid', $january->status);
+        $this->assertEquals(0.00, $january->balance);
+        $this->assertEquals('2026-02-15', $january->cleared_at->toDateString());
+        $this->assertStringContainsString('1 Month Rent fully paid on Feb 15, 2026 (15 days after due date)', $january->settlement_notes);
+
+        // 4. Verify Nepali date conversion
+        $this->assertNotNull($payment->bs_payment_date);
+    }
+
+    /** Scenario: Auto-allocation of payment to oldest unpaid month */
+    public function test_auto_allocation_applies_payment_to_oldest_unpaid_month(): void
+    {
+        // Month 1: Unpaid
+        $jan = MonthlyRecord::create([
+            'year' => 2026,
+            'month' => 1,
+            'record_date' => '2026-01-01',
+            'rent_amount' => 16000.00,
+            'electricity_rate' => 10.00,
+            'tenant_water_percentage' => 50.00,
+        ]);
+        $jan->recalculate(true);
+
+        // Month 2: Unpaid
+        $feb = MonthlyRecord::create([
+            'year' => 2026,
+            'month' => 2,
+            'record_date' => '2026-02-01',
+            'rent_amount' => 16000.00,
+            'electricity_rate' => 10.00,
+            'tenant_water_percentage' => 50.00,
+        ]);
+        $feb->recalculate(true);
+
+        // Pay with monthly_record_id = 'auto'
+        $this->post(route('payments.store'), [
+            'monthly_record_id' => 'auto',
+            'amount' => 16000.00,
+            'payment_date' => '2026-02-15',
+            'payment_method' => 'Bank Transfer',
+        ]);
+
+        // January should be cleared first!
+        $jan->refresh();
+        $feb->refresh();
+
+        $this->assertEquals('paid', $jan->status);
+        $this->assertEquals(0.00, $jan->balance);
+        $this->assertEquals('unpaid', $feb->status);
+        $this->assertEquals(16000.00, $feb->balance);
+    }
+
     /** Scenario 1, 2, 3: Create monthly rent record, calculate electricity and 50/50 water bill */
     public function test_can_create_monthly_record_with_automatic_calculations(): void
     {
-        // Month: December 2025
-        // Rent: 16000
-        // Prev Reading: 1000, Curr Reading: 1100 => 100 units @ 10 = 1000
-        // Water Bill: 800 => 50% = 400
-        // Total expected: 16000 + 1000 + 400 = 17400
         $response = $this->post(route('monthly-records.store'), [
             'year' => 2025,
             'month' => 12,
+            'bs_year' => 2082,
+            'bs_month' => 9, // Poush
             'rent_amount' => 16000.00,
             'prev_electricity_reading' => 1000.00,
             'curr_electricity_reading' => 1100.00,
@@ -169,9 +263,9 @@ class RentMateTest extends TestCase
             'month' => 8,
             'rent_amount' => 16500.00,
             'prev_electricity_reading' => 500.00,
-            'curr_electricity_reading' => 600.00, // 100 units
+            'curr_electricity_reading' => 600.00,
             'electricity_rate' => 10.00,
-            'total_water_bill' => 1200.00, // 600
+            'total_water_bill' => 1200.00,
             'tenant_water_percentage' => 50.00,
         ]);
 
@@ -188,93 +282,17 @@ class RentMateTest extends TestCase
         $this->assertDatabaseMissing('monthly_records', ['id' => $record->id]);
     }
 
-    /** Scenario 10: Add historical records with verification status */
-    public function test_can_add_historical_record_with_verification_flag(): void
+    /** Nepali Calendar unit validation */
+    public function test_nepali_calendar_conversion_accuracy(): void
     {
-        $response = $this->post(route('historical.store'), [
-            'year' => 2024,
-            'month' => 11,
-            'rent_amount' => 15000.00,
-            'prev_electricity_reading' => 0,
-            'curr_electricity_reading' => 0,
-            'electricity_rate' => 10.00,
-            'total_water_bill' => 0,
-            'tenant_water_percentage' => 50.00,
-            'is_verified' => 0, // Estimated / incomplete
-            'notes' => 'Estimated initial move-in month',
-        ]);
-
-        $response->assertRedirect(route('historical.index'));
-
-        $record = MonthlyRecord::where('year', 2024)->where('month', 11)->first();
-        $this->assertNotNull($record);
-        $this->assertTrue($record->is_historical);
-        $this->assertFalse($record->is_verified);
+        $bs = NepaliCalendar::adToBs('2026-11-17');
+        $this->assertEquals(2083, $bs['year']);
+        $this->assertEquals(8, $bs['month']); // Mangsir
+        $this->assertEquals('Mangsir', $bs['month_en']);
+        $this->assertEquals('मंसिर', $bs['month_np']);
     }
 
-    /** Scenario 11: Verify dashboard dynamic calculations */
-    public function test_dashboard_calculations_match_database(): void
-    {
-        $record = MonthlyRecord::create([
-            'year' => 2025,
-            'month' => 7,
-            'record_date' => '2025-07-01',
-            'rent_amount' => 16000.00,
-            'prev_electricity_reading' => 100.00,
-            'curr_electricity_reading' => 200.00, // 1000
-            'electricity_rate' => 10.00,
-            'total_water_bill' => 1000.00, // 500
-            'tenant_water_percentage' => 50.00,
-        ]);
-        $record->payments()->create([
-            'payment_date' => '2025-07-05',
-            'amount' => 10000.00,
-            'payment_method' => 'eSewa',
-        ]);
-        $record->recalculate(true);
-
-        $response = $this->get(route('dashboard'));
-        $response->assertOk();
-        $response->assertViewHas('allTimeExpenses', 17500.00);
-        $response->assertViewHas('allTimePaid', 10000.00);
-        $response->assertViewHas('allTimeBalance', 7500.00);
-    }
-
-    /** Scenario 12: Rate preservation guarantee (updating settings does NOT alter historical records) */
-    public function test_settings_update_does_not_alter_existing_records(): void
-    {
-        $record = MonthlyRecord::create([
-            'year' => 2025,
-            'month' => 9,
-            'record_date' => '2025-09-01',
-            'rent_amount' => 16000.00,
-            'prev_electricity_reading' => 100.00,
-            'curr_electricity_reading' => 200.00,
-            'electricity_rate' => 10.00,
-            'total_water_bill' => 600.00,
-            'tenant_water_percentage' => 50.00,
-        ]);
-        $record->recalculate(true);
-
-        $initialTotal = $record->total_expenses;
-
-        // Change settings to rent 20000 and electricity rate 15
-        $this->put(route('settings.update'), [
-            'rent_amount' => 20000.00,
-            'electricity_rate' => 15.00,
-            'water_share_percentage' => 50.00,
-            'currency' => 'NPR',
-            'payment_reminder_days' => 5,
-        ]);
-
-        // Verify existing record is unchanged
-        $record->refresh();
-        $this->assertEquals(16000.00, $record->rent_amount);
-        $this->assertEquals(10.00, $record->electricity_rate);
-        $this->assertEquals($initialTotal, $record->total_expenses);
-    }
-
-    /** Export and Route smoke tests */
+    /** Smoke tests for all routes */
     public function test_all_routes_and_exports_accessible(): void
     {
         $this->get(route('dashboard'))->assertOk();

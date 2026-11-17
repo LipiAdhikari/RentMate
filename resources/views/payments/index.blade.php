@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Payments')
-@section('page_title', 'Payment Transactions Management')
+@section('page_title', 'Payment Transactions & Settlement Timing')
 
 @section('content')
 <div class="space-y-6">
@@ -68,7 +68,7 @@
                     <option value="">All Rental Months</option>
                     @foreach($monthlyRecords as $mr)
                         <option value="{{ $mr->id }}" {{ request('monthly_record_id') == $mr->id ? 'selected' : '' }}>
-                            {{ $mr->formatted_month }}
+                            {{ $mr->dual_month_label }}
                         </option>
                     @endforeach
                 </select>
@@ -97,10 +97,11 @@
             <table class="w-full text-left text-xs">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
-                        <th class="py-3.5 px-4">Date</th>
-                        <th class="py-3.5 px-4">Applied Month</th>
-                        <th class="py-3.5 px-4">Payment Method</th>
-                        <th class="py-3.5 px-4">Transaction Reference</th>
+                        <th class="py-3.5 px-4">Payment Date (AD & BS)</th>
+                        <th class="py-3.5 px-4">Applied Rental Month</th>
+                        <th class="py-3.5 px-4">Payment Timing</th>
+                        <th class="py-3.5 px-4">Method</th>
+                        <th class="py-3.5 px-4">Reference</th>
                         <th class="py-3.5 px-4">Notes</th>
                         <th class="py-3.5 px-4">Amount</th>
                         <th class="py-3.5 px-4 text-right">Action</th>
@@ -110,15 +111,27 @@
                     @forelse($payments as $pay)
                         <tr class="hover:bg-slate-50 transition">
                             <td class="py-3.5 px-4 font-semibold text-slate-800">
-                                {{ $pay->payment_date->format('M d, Y') }}
+                                <div>{{ $pay->payment_date->format('M d, Y') }}</div>
+                                <div class="text-[10px] text-teal-700">{{ $pay->bs_payment_date }}</div>
                             </td>
                             <td class="py-3.5 px-4 font-bold text-slate-700">
                                 @if($pay->monthlyRecord)
                                     <a href="{{ route('monthly-records.show', $pay->monthlyRecord) }}" class="hover:text-teal-600 transition">
-                                        {{ $pay->monthlyRecord->formatted_month }}
+                                        {{ $pay->monthlyRecord->dual_month_label }}
                                     </a>
                                 @else
                                     <span class="text-slate-400">General</span>
+                                @endif
+                            </td>
+                            <td class="py-3.5 px-4">
+                                @if($pay->days_late > 0)
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                        +{{ $pay->days_late }}d late
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                        On-time
+                                    </span>
                                 @endif
                             </td>
                             <td class="py-3.5 px-4">
@@ -143,7 +156,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-12 text-center text-slate-400">
+                            <td colspan="8" class="py-12 text-center text-slate-400">
                                 <i data-lucide="wallet" class="w-10 h-10 mx-auto text-slate-300 mb-2"></i>
                                 <p class="font-bold text-slate-700 text-sm">No payment records found</p>
                                 <p class="text-xs text-slate-400 mt-1">Record rent and utility installments here.</p>

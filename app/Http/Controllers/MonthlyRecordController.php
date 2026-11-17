@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MonthlyRecord;
 use App\Models\RentalSetting;
+use App\Services\NepaliCalendar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,10 @@ class MonthlyRecordController extends Controller
             $query->where('year', $request->year);
         }
 
+        if ($request->filled('bs_year')) {
+            $query->where('bs_year', $request->bs_year);
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -32,7 +37,13 @@ class MonthlyRecordController extends Controller
             ->orderBy('year', 'desc')
             ->pluck('year');
 
-        return view('monthly-records.index', compact('records', 'settings', 'availableYears'));
+        $availableBsYears = MonthlyRecord::select('bs_year')
+            ->whereNotNull('bs_year')
+            ->distinct()
+            ->orderBy('bs_year', 'desc')
+            ->pluck('bs_year');
+
+        return view('monthly-records.index', compact('records', 'settings', 'availableYears', 'availableBsYears'));
     }
 
     public function create()
@@ -53,7 +64,20 @@ class MonthlyRecordController extends Controller
             $defaultPrevReading = 0.00;
         }
 
-        return view('monthly-records.create', compact('settings', 'defaultYear', 'defaultMonth', 'defaultPrevReading'));
+        $bsInfo = NepaliCalendar::adToBs(sprintf('%04d-%02d-01', $defaultYear, $defaultMonth));
+        $defaultBsYear = $bsInfo['year'];
+        $defaultBsMonth = $bsInfo['month'];
+        $nepaliMonths = NepaliCalendar::MONTHS;
+
+        return view('monthly-records.create', compact(
+            'settings',
+            'defaultYear',
+            'defaultMonth',
+            'defaultBsYear',
+            'defaultBsMonth',
+            'defaultPrevReading',
+            'nepaliMonths'
+        ));
     }
 
     public function store(Request $request)
@@ -67,6 +91,8 @@ class MonthlyRecordController extends Controller
                 Rule::unique('monthly_records')->where(fn ($query) => $query->where('month', $request->month)),
             ],
             'month' => ['required', 'integer', 'between:1,12'],
+            'bs_year' => ['nullable', 'integer', 'between:2070,2100'],
+            'bs_month' => ['nullable', 'integer', 'between:1,12'],
             'rent_amount' => ['required', 'numeric', 'min:0'],
             'prev_electricity_reading' => ['required', 'numeric', 'min:0'],
             'curr_electricity_reading' => ['required', 'numeric', 'gte:prev_electricity_reading'],
@@ -85,11 +111,27 @@ class MonthlyRecordController extends Controller
 
         $record = DB::transaction(function () use ($validated, $request) {
             $recordDate = Carbon::createFromDate($validated['year'], $validated['month'], 1)->toDateString();
+            $dueDate = Carbon::createFromDate($validated['year'], $validated['month'], 1)->endOfMonth()->toDateString();
+
+            // Nepali calendar mapping
+            $bsYear = $validated['bs_year'] ?? null;
+            $bsMonth = $validated['bs_month'] ?? null;
+            if (!$bsYear || !$bsMonth) {
+                $bs = NepaliCalendar::guessBsMonthFromAd($validated['year'], $validated['month']);
+                $bsYear = $bs['bs_year'];
+                $bsMonth = $bs['bs_month'];
+            }
+            $monthInfo = NepaliCalendar::MONTHS[$bsMonth] ?? ['en' => 'Month ' . $bsMonth, 'np' => ''];
+            $nepaliMonthName = $monthInfo['en'] . ' (' . $monthInfo['np'] . ')';
 
             $record = MonthlyRecord::create([
                 'year' => $validated['year'],
                 'month' => $validated['month'],
+                'bs_year' => $bsYear,
+                'bs_month' => $bsMonth,
+                'nepali_month_name' => $nepaliMonthName,
                 'record_date' => $recordDate,
+                'due_date' => $dueDate,
                 'rent_amount' => $validated['rent_amount'],
                 'prev_electricity_reading' => $validated['prev_electricity_reading'],
                 'curr_electricity_reading' => $validated['curr_electricity_reading'],
@@ -119,7 +161,7 @@ class MonthlyRecordController extends Controller
         });
 
         return redirect()->route('monthly-records.show', $record)
-            ->with('success', 'Monthly record for ' . $record->formatted_month . ' created successfully.');
+            ->with('success', 'Monthly record for ' . $record->dual_month_label . ' created successfully.');
     }
 
     public function show(MonthlyRecord $monthlyRecord)
@@ -134,8 +176,9 @@ class MonthlyRecordController extends Controller
     {
         $monthlyRecord->load('additionalExpenses');
         $settings = RentalSetting::getActive();
+        $nepaliMonths = NepaliCalendar::MONTHS;
 
-        return view('monthly-records.edit', compact('monthlyRecord', 'settings'));
+        return view('monthly-records.edit', compact('monthlyRecord', 'settings', 'nepaliMonths'));
     }
 
     public function update(Request $request, MonthlyRecord $monthlyRecord)
@@ -149,6 +192,8 @@ class MonthlyRecordController extends Controller
                 Rule::unique('monthly_records')->where(fn ($query) => $query->where('month', $request->month))->ignore($monthlyRecord->id),
             ],
             'month' => ['required', 'integer', 'between:1,12'],
+            'bs_year' => ['nullable', 'integer', 'between:2070,2100'],
+            'bs_month' => ['nullable', 'integer', 'between:1,12'],
             'rent_amount' => ['required', 'numeric', 'min:0'],
             'prev_electricity_reading' => ['required', 'numeric', 'min:0'],
             'curr_electricity_reading' => ['required', 'numeric', 'gte:prev_electricity_reading'],
@@ -168,9 +213,22 @@ class MonthlyRecordController extends Controller
         DB::transaction(function () use ($validated, $request, $monthlyRecord) {
             $recordDate = Carbon::createFromDate($validated['year'], $validated['month'], 1)->toDateString();
 
+            $bsYear = $validated['bs_year'] ?? null;
+            $bsMonth = $validated['bs_month'] ?? null;
+            if (!$bsYear || !$bsMonth) {
+                $bs = NepaliCalendar::guessBsMonthFromAd($validated['year'], $validated['month']);
+                $bsYear = $bs['bs_year'];
+                $bsMonth = $bs['bs_month'];
+            }
+            $monthInfo = NepaliCalendar::MONTHS[$bsMonth] ?? ['en' => 'Month ' . $bsMonth, 'np' => ''];
+            $nepaliMonthName = $monthInfo['en'] . ' (' . $monthInfo['np'] . ')';
+
             $monthlyRecord->update([
                 'year' => $validated['year'],
                 'month' => $validated['month'],
+                'bs_year' => $bsYear,
+                'bs_month' => $bsMonth,
+                'nepali_month_name' => $nepaliMonthName,
                 'record_date' => $recordDate,
                 'rent_amount' => $validated['rent_amount'],
                 'prev_electricity_reading' => $validated['prev_electricity_reading'],
@@ -199,12 +257,12 @@ class MonthlyRecordController extends Controller
         });
 
         return redirect()->route('monthly-records.show', $monthlyRecord)
-            ->with('success', 'Monthly record for ' . $monthlyRecord->formatted_month . ' updated successfully.');
+            ->with('success', 'Monthly record for ' . $monthlyRecord->dual_month_label . ' updated successfully.');
     }
 
     public function destroy(MonthlyRecord $monthlyRecord)
     {
-        $monthName = $monthlyRecord->formatted_month;
+        $monthName = $monthlyRecord->dual_month_label;
         $monthlyRecord->delete();
 
         return redirect()->route('monthly-records.index')

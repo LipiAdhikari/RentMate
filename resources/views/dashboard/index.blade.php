@@ -6,6 +6,32 @@
 @section('content')
 <div class="space-y-6">
 
+    <!-- Nepali Calendar Live Banner -->
+    <div class="bg-gradient-to-r from-slate-900 to-navy-900 text-white rounded-2xl p-5 border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold text-lg shrink-0">
+                🇳🇵
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-teal-400 uppercase tracking-wider">Current Running Month</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] bg-teal-500/20 text-teal-300 font-bold border border-teal-500/30">Mangsir (मंसिर)</span>
+                </div>
+                <h3 class="text-lg font-bold text-white mt-0.5">
+                    {{ $todayBs['formatted'] }} ({{ $todayBs['formatted_np'] }})
+                    <span class="text-xs text-slate-400 font-normal ml-1">/ {{ date('F d, Y') }} AD</span>
+                </h3>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="openGlobalPaymentModal()" class="px-4 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl shadow-md transition flex items-center gap-1.5">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Pay Rent / Installment</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Outstanding Alert Banner if any unpaid/partial months exist -->
     @if($unpaidRecords->count() > 0)
         <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-sm">
@@ -17,13 +43,14 @@
                     <div>
                         <h4 class="font-bold text-amber-900 text-sm">Action Needed: {{ $unpaidRecords->count() }} Month(s) Pending Payment</h4>
                         <p class="text-xs text-amber-700 mt-0.5">
-                            You have an outstanding balance of <span class="font-bold">NPR {{ number_format($allTimeBalance, 2) }}</span> across pending months.
+                            You have an outstanding balance of <span class="font-bold">NPR {{ number_format($allTimeBalance, 2) }}</span> across pending months. 
+                            Payments made now will clear the oldest pending rent and record settlement timing automatically.
                         </p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="openGlobalPaymentModal({{ $unpaidRecords->first()->id }})" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-sm transition">
-                        Pay Latest ({{ $unpaidRecords->first()->short_month }})
+                        Pay Oldest ({{ $unpaidRecords->first()->dual_month_label }})
                     </button>
                 </div>
             </div>
@@ -117,22 +144,27 @@
         </div>
     </div>
 
-    <!-- Breakdown of Active Month (Cards with icons) -->
+    <!-- Active Month Breakdown Card -->
     @if($activeDisplayRecord)
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
                 <div>
                     <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span>{{ $activeDisplayRecord->formatted_month }} Detailed Breakdown</span>
+                        <span>{{ $activeDisplayRecord->dual_month_label }}</span>
                         <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border {{ $activeDisplayRecord->status_badge_class }}">
                             {{ $activeDisplayRecord->status_label }}
                         </span>
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Summary of rent, electricity meter readings, and 50% water share.</p>
+                    @if($activeDisplayRecord->settlement_notes)
+                        <p class="text-xs text-teal-700 font-medium mt-1 flex items-center gap-1">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                            <span>{{ $activeDisplayRecord->settlement_notes }}</span>
+                        </p>
+                    @endif
                 </div>
                 <div class="flex items-center gap-2">
                     <a href="{{ route('monthly-records.show', $activeDisplayRecord) }}" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
-                        View Full Details
+                        View Details
                     </a>
                     @if($activeDisplayRecord->balance > 0)
                         <button type="button" onclick="openGlobalPaymentModal({{ $activeDisplayRecord->id }})" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm transition">
@@ -193,7 +225,7 @@
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h3 class="font-bold text-slate-800 text-sm">Monthly Rental Expense Overview</h3>
-                    <p class="text-xs text-slate-500">Cost trends across recent months</p>
+                    <p class="text-xs text-slate-500">Nepali (BS) & English (AD) Cost trends</p>
                 </div>
                 <span class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg">NPR</span>
             </div>
@@ -228,7 +260,7 @@
                     </div>
                     <div>
                         <h4 class="font-bold text-slate-800 text-sm">Pending & Partial Dues</h4>
-                        <p class="text-[11px] text-slate-500">Months requiring payment action</p>
+                        <p class="text-[11px] text-slate-500">Select to clear (system detects 1 mo rent payment)</p>
                     </div>
                 </div>
                 <span class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
@@ -242,7 +274,7 @@
                         <div>
                             <div class="font-bold text-slate-800 text-sm flex items-center gap-2">
                                 <a href="{{ route('monthly-records.show', $rec) }}" class="hover:text-teal-600 transition">
-                                    {{ $rec->formatted_month }}
+                                    {{ $rec->dual_month_label }}
                                 </a>
                                 <span class="px-2 py-0.2 rounded-full text-[10px] font-bold border {{ $rec->status_badge_class }}">
                                     {{ $rec->status_label }}
@@ -254,8 +286,8 @@
                         </div>
                         <div class="text-right shrink-0">
                             <div class="text-sm font-extrabold text-rose-600">NPR {{ number_format($rec->balance, 2) }}</div>
-                            <button type="button" onclick="openGlobalPaymentModal({{ $rec->id }})" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-teal-600 hover:text-teal-700 bg-teal-50 px-2 py-0.5 rounded hover:bg-teal-100 transition">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Pay
+                            <button type="button" onclick="openGlobalPaymentModal({{ $rec->id }})" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-teal-600 hover:text-teal-700 bg-teal-50 px-2.5 py-1 rounded hover:bg-teal-100 transition">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Pay & Clear
                             </button>
                         </div>
                     </div>
@@ -276,8 +308,8 @@
                         <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
                     </div>
                     <div>
-                        <h4 class="font-bold text-slate-800 text-sm">Recent Transactions</h4>
-                        <p class="text-[11px] text-slate-500">Latest recorded payments</p>
+                        <h4 class="font-bold text-slate-800 text-sm">Recent Transactions & Clearance</h4>
+                        <p class="text-[11px] text-slate-500">Shows cleared rental months and settlement timings</p>
                     </div>
                 </div>
                 <a href="{{ route('payments.index') }}" class="text-xs text-teal-600 hover:text-teal-700 font-semibold">View All</a>
@@ -291,23 +323,30 @@
                                 <i data-lucide="check" class="w-4 h-4"></i>
                             </div>
                             <div>
-                                <div class="font-bold text-slate-800 text-sm">
-                                    {{ $pay->monthlyRecord ? $pay->monthlyRecord->short_month : 'Rent Payment' }}
+                                <div class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                                    <span>{{ $pay->monthlyRecord ? $pay->monthlyRecord->dual_month_label : 'Rent Payment' }}</span>
+                                    @if($pay->days_late > 0)
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800">
+                                            +{{ $pay->days_late }}d late
+                                        </span>
+                                    @else
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
+                                            On-time
+                                        </span>
+                                    @endif
                                 </div>
                                 <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                                    <span>{{ $pay->payment_date->format('M d, Y') }}</span>
+                                    <span>{{ $pay->bs_payment_date ?? $pay->payment_date->format('M d, Y') }}</span>
                                     <span>•</span>
                                     <span class="font-medium text-slate-600">{{ $pay->payment_method }}</span>
-                                    @if($pay->transaction_reference)
-                                        <span class="text-[10px] text-slate-400 truncate max-w-[120px]">({{ $pay->transaction_reference }})</span>
-                                    @endif
                                 </div>
                             </div>
                         </div>
                         <div class="text-right shrink-0">
-                            <span class="text-sm font-extrabold text-emerald-600">
+                            <span class="text-sm font-extrabold text-emerald-600 block">
                                 +NPR {{ number_format($pay->amount, 2) }}
                             </span>
+                            <span class="text-[10px] text-slate-400">1 Mo Rent Cleared</span>
                         </div>
                     </div>
                 @empty
@@ -344,21 +383,21 @@
                         {
                             label: 'Rent',
                             data: rentData,
-                            backgroundColor: '#0d9488', // teal
+                            backgroundColor: '#0d9488',
                             borderRadius: 4,
                             stack: 'expenses'
                         },
                         {
                             label: 'Electricity',
                             data: elecData,
-                            backgroundColor: '#f59e0b', // amber
+                            backgroundColor: '#f59e0b',
                             borderRadius: 4,
                             stack: 'expenses'
                         },
                         {
                             label: 'Water (50%)',
                             data: waterData,
-                            backgroundColor: '#0284c7', // sky
+                            backgroundColor: '#0284c7',
                             borderRadius: 4,
                             stack: 'expenses'
                         }
@@ -378,7 +417,7 @@
                         }
                     },
                     scales: {
-                        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
                         y: {
                             stacked: true,
                             grid: { color: '#f1f5f9' },
@@ -424,7 +463,7 @@
                         }
                     },
                     scales: {
-                        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
                         y: {
                             grid: { color: '#f1f5f9' },
                             ticks: {

@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-lg font-bold text-slate-800">New Rental Month</h2>
-            <p class="text-xs text-slate-500">Enter rent, electricity meter readings, and water bill for this month.</p>
+            <p class="text-xs text-slate-500">Supports both Nepali Bikram Sambat (BS) & English (AD) calendar periods.</p>
         </div>
         <a href="{{ route('monthly-records.index') }}" class="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
             Back to Records
@@ -19,25 +19,44 @@
     <form action="{{ route('monthly-records.store') }}" method="POST" id="monthly-record-form" class="space-y-6">
         @csrf
 
-        <!-- 1. Month & Rent Card -->
+        <!-- 1. Month & Rent Card with Dual BS / AD -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
-            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 pb-3 border-b border-slate-100">
-                <i data-lucide="calendar" class="w-4 h-4 text-teal-600"></i>
-                <span>1. Month Period & House Rent</span>
-            </h3>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 text-teal-600"></i>
+                    <span>1. Rental Month Period (Nepali BS & English AD)</span>
+                </h3>
+                <span class="text-xs text-teal-600 font-semibold">🇳🇵 Dual Calendar Enabled</span>
+            </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Nepali Month -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Rental Year *</label>
-                    <select name="year" id="year" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
-                        @for($y = date('Y') + 1; $y >= 2024; $y--)
-                            <option value="{{ $y }}" {{ old('year', $defaultYear) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nepali Month (महिना) *</label>
+                    <select name="bs_month" id="bs_month" onchange="syncFromNepaliMonth()" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border font-medium">
+                        @foreach($nepaliMonths as $num => $info)
+                            <option value="{{ $num }}" {{ old('bs_month', $defaultBsMonth) == $num ? 'selected' : '' }}>
+                                {{ $info['en'] }} ({{ $info['np'] }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Nepali Year -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nepali Year (वि.सं.) *</label>
+                    <select name="bs_year" id="bs_year" onchange="syncFromNepaliMonth()" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border font-medium">
+                        @for($by = 2085; $by >= 2080; $by--)
+                            <option value="{{ $by }}" {{ old('bs_year', $defaultBsYear) == $by ? 'selected' : '' }}>
+                                {{ $by }} BS ({{ \App\Services\NepaliCalendar::toNepaliNumerals($by) }})
+                            </option>
                         @endfor
                     </select>
                 </div>
 
+                <!-- AD Month -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Rental Month *</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">English Month (AD) *</label>
                     <select name="month" id="month" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
                         @foreach([
                             1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
@@ -51,10 +70,20 @@
                     </select>
                 </div>
 
+                <!-- AD Year -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Monthly House Rent (NPR) *</label>
-                    <input type="number" step="0.01" min="0" name="rent_amount" id="rent_amount" required value="{{ old('rent_amount', $settings->rent_amount) }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">English Year (AD) *</label>
+                    <select name="year" id="year" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
+                        @for($y = date('Y') + 1; $y >= 2024; $y--)
+                            <option value="{{ $y }}" {{ old('year', $defaultYear) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                        @endfor
+                    </select>
                 </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Monthly House Rent (NPR) *</label>
+                <input type="number" step="0.01" min="0" name="rent_amount" id="rent_amount" required value="{{ old('rent_amount', $settings->rent_amount) }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
             </div>
         </div>
 
@@ -133,7 +162,7 @@
             </div>
         </div>
 
-        <!-- 4. Additional Expenses Card (Optional) -->
+        <!-- 4. Additional Expenses Card -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -148,14 +177,13 @@
             <div id="expenses-container" class="space-y-3">
                 <!-- Dynamically populated rows -->
             </div>
-            <p class="text-[11px] text-slate-400">Leave empty if there are no additional charges for this month.</p>
         </div>
 
         <!-- 5. Notes & Grand Total Card -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Notes / Remarks (Optional)</label>
-                <textarea name="notes" rows="2" placeholder="e.g. Festival month, extra guest water usage, meter checked on 1st" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 p-3 border">{{ old('notes') }}</textarea>
+                <textarea name="notes" rows="2" placeholder="e.g. Festival month, meter checked on 1st" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 p-3 border">{{ old('notes') }}</textarea>
             </div>
 
             <!-- Grand Total Summary Banner -->
@@ -185,6 +213,25 @@
 
 @push('scripts')
 <script>
+    function syncFromNepaliMonth() {
+        const bsMonth = parseInt(document.getElementById('bs_month')?.value) || 8;
+        const bsYear = parseInt(document.getElementById('bs_year')?.value) || 2083;
+
+        // Approximate map from BS to AD month
+        // Baisakh (1) -> April (4), Jestha (2) -> May (5), ..., Mangsir (8) -> November (11)
+        let adMonth = bsMonth + 3;
+        let adYear = bsYear - 57;
+        if (adMonth > 12) {
+            adMonth -= 12;
+            adYear += 1;
+        }
+
+        const monthSelect = document.getElementById('month');
+        const yearSelect = document.getElementById('year');
+        if (monthSelect) monthSelect.value = adMonth;
+        if (yearSelect) yearSelect.value = adYear;
+    }
+
     let expenseRowIndex = 0;
 
     function addExpenseRow(title = '', amount = '', category = 'Waste') {
@@ -194,7 +241,7 @@
         row.id = `expense-row-${expenseRowIndex}`;
         row.innerHTML = `
             <div class="col-span-5">
-                <input type="text" name="expenses[${expenseRowIndex}][title]" value="${title}" placeholder="Charge Title (e.g. Waste Management)" required class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-1.5 border">
+                <input type="text" name="expenses[${expenseRowIndex}][title]" value="${title}" placeholder="Charge Title" required class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-1.5 border">
             </div>
             <div class="col-span-3">
                 <input type="number" step="0.01" min="0" name="expenses[${expenseRowIndex}][amount]" value="${amount}" placeholder="Amount (NPR)" required oninput="calculateAll()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-1.5 border expense-amount-input">
@@ -235,10 +282,8 @@
         const totalWater = parseFloat(document.getElementById('total_water_bill')?.value) || 0;
         const waterPct = parseFloat(document.getElementById('tenant_water_percentage')?.value) || 0;
 
-        // Electricity
         let units = 0;
         const warning = document.getElementById('reading-warning');
-        const submitBtn = document.getElementById('submit-btn');
 
         if (currReading < prevReading) {
             if (warning) warning.classList.remove('hidden');
@@ -252,19 +297,16 @@
         document.getElementById('calc-units').innerText = units.toFixed(2);
         document.getElementById('calc-electricity-bill').innerText = elecBill.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-        // Water
         const tenantWater = totalWater * (waterPct / 100);
         const ownerWater = totalWater - tenantWater;
         document.getElementById('calc-tenant-water').innerText = tenantWater.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('calc-owner-water').innerText = 'NPR ' + ownerWater.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-        // Additional expenses
         let otherTotal = 0;
         document.querySelectorAll('.expense-amount-input').forEach(input => {
             otherTotal += parseFloat(input.value) || 0;
         });
 
-        // Grand Total
         const grandTotal = rent + elecBill + tenantWater + otherTotal;
         document.getElementById('calc-grand-total').innerText = grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }

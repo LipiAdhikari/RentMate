@@ -58,7 +58,7 @@
                     </div>
                     <div>
                         <span class="text-lg font-bold tracking-tight text-white flex items-center gap-1">Rent<span class="text-teal-400">Mate</span></span>
-                        <span class="text-[10px] text-slate-400 uppercase tracking-widest block font-medium">Expense Tracker</span>
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest block font-medium">Bilingual BS / AD</span>
                     </div>
                 </a>
                 <button class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar()">
@@ -90,7 +90,7 @@
 
                 <a href="{{ route('payments.index') }}" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('payments.*') ? 'bg-teal-600/15 text-teal-400 border border-teal-500/20' : 'text-slate-300 hover:bg-slate-800/60 hover:text-white' }}">
                     <i data-lucide="wallet" class="w-5 h-5 mr-3 {{ request()->routeIs('payments.*') ? 'text-teal-400' : 'text-slate-400' }}"></i>
-                    Payments
+                    Payments & Timing
                 </a>
 
                 <a href="{{ route('historical.index') }}" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('historical.*') ? 'bg-teal-600/15 text-teal-400 border border-teal-500/20' : 'text-slate-300 hover:bg-slate-800/60 hover:text-white' }}">
@@ -116,13 +116,14 @@
             <!-- Bottom Information Card -->
             <div class="p-4 border-t border-slate-800/80 bg-navy-950/30">
                 <div class="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3 text-xs">
-                    <div class="flex items-center justify-between text-slate-400 mb-1">
-                        <span>Configured Rent</span>
-                        <span class="text-teal-400 font-semibold">NPR 16,000</span>
+                    <div class="text-[11px] text-teal-400 font-bold mb-1 flex items-center gap-1">
+                        <span>🇳🇵 Bikram Sambat Active</span>
                     </div>
-                    <div class="flex items-center justify-between text-slate-400">
-                        <span>Electricity Rate</span>
-                        <span class="text-slate-200 font-medium">NPR 10 / unit</span>
+                    <div class="text-[11px] text-slate-300 font-medium">
+                        {{ \App\Services\NepaliCalendar::today()['formatted_np'] }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">
+                        {{ date('F d, Y') }}
                     </div>
                 </div>
             </div>
@@ -136,11 +137,20 @@
                     <button type="button" class="md:hidden text-slate-600 hover:text-slate-900 focus:outline-none" onclick="toggleSidebar()">
                         <i data-lucide="menu" class="w-6 h-6"></i>
                     </button>
-                    <h1 class="text-xl font-bold text-slate-800 tracking-tight">@yield('page_title', 'Dashboard')</h1>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800 tracking-tight">@yield('page_title', 'Dashboard')</h1>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <button type="button" onclick="openGlobalPaymentModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-teal-500 focus:ring-offset-1">
+                    <!-- Live Dual Calendar Pill -->
+                    <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 border border-slate-200">
+                        <span class="text-rose-600 font-bold">🇳🇵</span>
+                        <span>{{ \App\Services\NepaliCalendar::today()['formatted'] }}</span>
+                        <span class="text-slate-400">({{ date('M d') }})</span>
+                    </div>
+
+                    <button type="button" onclick="openGlobalPaymentModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm transition focus:ring-2 focus:ring-teal-500 focus:ring-offset-1">
                         <i data-lucide="plus" class="w-4 h-4"></i>
                         <span>Record Payment</span>
                     </button>
@@ -157,7 +167,7 @@
                     <div class="mb-4 flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm shadow-sm">
                         <div class="flex items-center gap-3">
                             <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 shrink-0"></i>
-                            <span>{{ session('success') }}</span>
+                            <span class="font-medium">{{ session('success') }}</span>
                         </div>
                         <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">
                             <i data-lucide="x" class="w-4 h-4"></i>
@@ -199,15 +209,18 @@
         </div>
     </div>
 
-    <!-- Global Record Payment Modal -->
+    <!-- Global Record Payment Modal with Auto-Detection & Dual Calendars -->
     <div id="global-payment-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
                         <i data-lucide="wallet" class="w-4 h-4"></i>
                     </div>
-                    <h3 class="font-bold text-slate-800">Record a Payment</h3>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Record Rental Payment</h3>
+                        <p class="text-[11px] text-slate-500">Auto-detects paid rent & late days (e.g. Jan rent paid Feb 15)</p>
+                    </div>
                 </div>
                 <button type="button" onclick="closeGlobalPaymentModal()" class="text-slate-400 hover:text-slate-600">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -216,14 +229,18 @@
             <form action="{{ route('payments.store') }}" method="POST" class="p-6 space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Select Rental Month *</label>
-                    <select name="monthly_record_id" id="payment_modal_month" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Rental Month to Clear *</label>
+                    <select name="monthly_record_id" id="payment_modal_month" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border font-medium">
+                        <option value="auto" selected>⚡ Auto-Apply to Oldest Unpaid Month (Recommended)</option>
                         @foreach(\App\Models\MonthlyRecord::orderBy('record_date', 'desc')->get() as $rec)
                             <option value="{{ $rec->id }}">
-                                {{ $rec->formatted_month }} (Due: NPR {{ number_format($rec->balance, 2) }})
+                                {{ $rec->dual_month_label }} — Due: NPR {{ number_format($rec->balance, 2) }}
                             </option>
                         @endforeach
                     </select>
+                    <span class="text-[10px] text-teal-600 mt-1 block">
+                        Even if paid late in another month, selecting that month marks that 1 month rent has been cleared.
+                    </span>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -232,7 +249,7 @@
                         <input type="number" step="0.01" min="1" name="amount" required placeholder="16000.00" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date *</label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date (AD) *</label>
                         <input type="date" name="payment_date" required value="{{ date('Y-m-d') }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
                     </div>
                 </div>
@@ -242,25 +259,25 @@
                     <select name="payment_method" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
                         <option value="eSewa">eSewa</option>
                         <option value="Khalti">Khalti</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer (Fonepay / Wire)</option>
+                        <option value="Cash">Cash Handover</option>
                         <option value="Other">Other</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Transaction Ref / Cheque No. (Optional)</label>
-                    <input type="text" name="transaction_reference" placeholder="e.g. ESEWA-982187 or Cheque #1029" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                    <input type="text" name="transaction_reference" placeholder="e.g. ESEWA-982187 or Bank Ref" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Notes / Description (Optional)</label>
-                    <input type="text" name="notes" placeholder="e.g. 1st installment or full rent cleared" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Notes / Remarks (Optional)</label>
+                    <input type="text" name="notes" placeholder="e.g. January rent cleared late on Feb 15" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
                 </div>
 
                 <div class="pt-2 flex items-center justify-end gap-2">
                     <button type="button" onclick="closeGlobalPaymentModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm">Save Payment</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm">Save & Detect Clearance</button>
                 </div>
             </form>
         </div>

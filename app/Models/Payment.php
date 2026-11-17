@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\NepaliCalendar;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +17,10 @@ class Payment extends Model
     protected $fillable = [
         'monthly_record_id',
         'payment_date',
+        'bs_payment_date',
         'amount',
+        'days_late',
+        'cleared_full_month',
         'payment_method',
         'transaction_reference',
         'notes',
@@ -24,6 +29,8 @@ class Payment extends Model
     protected $casts = [
         'payment_date' => 'date',
         'amount' => 'decimal:2',
+        'days_late' => 'integer',
+        'cleared_full_month' => 'boolean',
     ];
 
     public function monthlyRecord(): BelongsTo
@@ -33,6 +40,26 @@ class Payment extends Model
 
     protected static function booted()
     {
+        static::creating(function ($payment) {
+            // Auto convert payment date to Bikram Sambat
+            if (empty($payment->bs_payment_date) && !empty($payment->payment_date)) {
+                $bs = NepaliCalendar::adToBs($payment->payment_date);
+                $payment->bs_payment_date = $bs['formatted'] . ' (' . $bs['month_np'] . ')';
+            }
+
+            // Detect if payment is late relative to the monthly record due date
+            if ($payment->monthlyRecord) {
+                $dueDate = $payment->monthlyRecord->due_date ?? Carbon::createFromDate($payment->monthlyRecord->year, $payment->monthlyRecord->month, 1)->endOfMonth();
+                $payDate = Carbon::parse($payment->payment_date);
+
+                if ($payDate->gt($dueDate)) {
+                    $payment->days_late = abs((int) $dueDate->diffInDays($payDate));
+                } else {
+                    $payment->days_late = 0;
+                }
+            }
+        });
+
         static::saved(function ($payment) {
             $payment->monthlyRecord?->recalculate(true);
         });

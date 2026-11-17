@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\MonthlyRecord;
 use App\Models\Payment;
 use App\Models\RentalSetting;
+use App\Services\NepaliCalendar;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -51,7 +53,7 @@ class PaymentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'monthly_record_id' => ['required', 'exists:monthly_records,id'],
+            'monthly_record_id' => ['nullable'],
             'payment_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'min:1'],
             'payment_method' => ['required', 'in:Cash,eSewa,Khalti,Bank Transfer,Other'],
@@ -59,14 +61,59 @@ class PaymentController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $monthlyRecord = MonthlyRecord::findOrFail($validated['monthly_record_id']);
+        // Auto-allocate to oldest unpaid month if requested or empty
+        if (empty($validated['monthly_record_id']) || $validated['monthly_record_id'] === 'auto') {
+            $targetRecord = MonthlyRecord::whereIn('status', ['unpaid', 'partially_paid'])
+                ->orderBy('record_date', 'asc')
+                ->first();
 
-        DB::transaction(function () use ($monthlyRecord, $validated) {
-            $monthlyRecord->payments()->create($validated);
-            $monthlyRecord->recalculate(true);
+            if (!$targetRecord) {
+                $targetRecord = MonthlyRecord::orderBy('record_date', 'desc')->firstOrFail();
+            }
+        } else {
+            $targetRecord = MonthlyRecord::findOrFail($validated['monthly_record_id']);
+        }
+
+        $paymentDate = Carbon::parse($validated['payment_date']);
+        $bsDateInfo = NepaliCalendar::adToBs($paymentDate);
+        $bsPaymentDate = $bsDateInfo['formatted'] . ' (' . $bsDateInfo['month_np'] . ')';
+
+        // Calculate days late relative to the target month's due date
+        $dueDate = $targetRecord->due_date ?? Carbon::createFromDate($targetRecord->year, $targetRecord->month, 1)->endOfMonth();
+        $daysLate = 0;
+        if ($paymentDate->gt($dueDate)) {
+            $daysLate = abs((int) $dueDate->diffInDays($paymentDate));
+        }
+
+        DB::transaction(function () use ($targetRecord, $validated, $bsPaymentDate, $daysLate) {
+            $targetRecord->payments()->create([
+                'payment_date' => $validated['payment_date'],
+                'bs_payment_date' => $bsPaymentDate,
+                'amount' => $validated['amount'],
+                'days_late' => $daysLate,
+                'payment_method' => $validated['payment_method'],
+                'transaction_reference' => $validated['transaction_reference'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $targetRecord->recalculate(true);
         });
 
-        return redirect()->back()->with('success', 'Payment of ' . $monthlyRecord->currency . ' ' . number_format($validated['amount'], 2) . ' recorded for ' . $monthlyRecord->formatted_month . '.');
+        $targetRecord->refresh();
+
+        // Build notification message highlighting the smart detection
+        $formattedAmount = number_format($validated['amount'], 2);
+        $monthLabel = $targetRecord->dual_month_label;
+
+        if ($targetRecord->status === 'paid' || $targetRecord->status === 'overpaid') {
+            $lateText = $daysLate > 0 ? " (Paid {$daysLate} days after due date on {$paymentDate->format('M d, Y')})" : ' (Paid on-time)';
+            $msg = "Success: Payment of NPR {$formattedAmount} detected and applied to {$monthLabel}. 1 full month rent is now CLEARED and fully settled{$lateText}!";
+        } else {
+            $rem = number_format($targetRecord->balance, 2);
+            $msg = "Payment of NPR {$formattedAmount} applied to {$monthLabel}. Remaining balance: NPR {$rem}.";
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 
     public function destroy(Payment $payment)
@@ -79,6 +126,6 @@ class PaymentController extends Controller
             $monthlyRecord?->recalculate(true);
         });
 
-        return redirect()->back()->with('success', 'Payment transaction of ' . number_format($amount, 2) . ' deleted successfully.');
+        return redirect()->back()->with('success', 'Payment transaction of NPR ' . number_format($amount, 2) . ' deleted successfully.');
     }
 }
