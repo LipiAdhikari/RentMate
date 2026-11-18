@@ -22,6 +22,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Don't log common HTTP errors to reduce log volume
+        $exceptions->dontReport([
+            \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
+            \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException::class,
+            \Illuminate\Session\TokenMismatchException::class,
+            \Illuminate\Auth\AuthenticationException::class,
+        ]);
+
         $exceptions->render(function (\Illuminate\Database\QueryException $e, $request) {
             Log::error('Database error: ' . $e->getMessage(), [
                 'exception' => get_class($e),
