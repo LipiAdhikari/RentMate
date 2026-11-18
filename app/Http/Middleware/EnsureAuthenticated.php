@@ -11,7 +11,7 @@ class EnsureAuthenticated
     public function handle(Request $request, Closure $next)
     {
         if (!Auth::check()) {
-            return redirect()->route('login')->with('error', 'Please login first.');
+            return redirect()->route('login');
         }
 
         return $next($request);

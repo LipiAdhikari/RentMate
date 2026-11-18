@@ -3,7 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Support\Facades\Log;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,7 +13,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
-        // Add production error handling middleware
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\EnsureAppKey::class,
             \App\Http\Middleware\HandleProductionErrors::class,
@@ -51,7 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return response()->view('errors.500', [
-                'message' => 'Database connection error. Please check your Supabase connection settings in Railway Variables.',
+                'message' => 'Database connection error. Please check your database connection settings.',
             ], 500);
         })->render(function (\Illuminate\Session\TokenMismatchException $e, $request) {
             Log::warning('Session expired: ' . $e->getMessage());
