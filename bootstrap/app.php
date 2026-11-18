@@ -31,6 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Auth\AuthenticationException::class,
         ]);
 
+        // Handle AuthenticationException - redirect to login instead of 500 error
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            return redirect()->guest(route('login'));
+        });
+
         $exceptions->render(function (\Illuminate\Database\QueryException $e, $request) {
             Log::error('Database error: ' . $e->getMessage(), [
                 'exception' => get_class($e),
