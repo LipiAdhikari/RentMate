@@ -20,17 +20,6 @@ Route::get('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login', [AuthController::class, 'authenticate'])->name('login.authenticate');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Password Reset
-Route::get('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.request');
-Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
-Route::get('/reset-password/{token}', [AuthController::class, 'resetPassword'])->name('password.reset');
-Route::post('/reset-password', [AuthController::class, 'updatePassword'])->name('password.update');
-
-// Email Verification
-Route::get('/verify-email', [AuthController::class, 'verifyEmail'])->name('verification.notice');
-Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verify'])->name('verification.verify');
-Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->name('verification.resend');
-
 // Landing page (public)
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 

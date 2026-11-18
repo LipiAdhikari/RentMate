@@ -6,12 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Validation\Rules\Password as PasswordRule;
-use Illuminate\Auth\Events\Verified;
-use Illuminate\Auth\Events\PasswordReset;
-use Carbon\Carbon;
+use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
@@ -31,7 +26,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', PasswordRule::defaults(), 'confirmed'],
+            'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
         $user = User::create([
@@ -100,136 +95,5 @@ class AuthController extends Controller
 
         return redirect()->route('login')
             ->with('success', 'You have been logged out.');
-    }
-
-    /**
-     * Show the forgot password form.
-     */
-    public function forgotPassword(Request $request)
-    {
-        return view('auth.forgot-password');
-    }
-
-    /**
-     * Send password reset link.
-     */
-    public function sendResetLink(Request $request)
-    {
-        $request->validate([
-            'email' => ['required', 'email'],
-        ]);
-
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return back()->with('success', 'We have sent you a password reset link. Please check your email.');
-        }
-
-        return back()->withErrors([
-            'email' => 'We could not find a user with that email address.',
-        ])->onlyInput('email');
-    }
-
-    /**
-     * Show the reset password form.
-     */
-    public function resetPassword(Request $request, $token)
-    {
-        return view('auth.reset-password', [
-            'token' => $token,
-            'email' => $request->email,
-        ]);
-    }
-
-    /**
-     * Update the user's password.
-     */
-    public function updatePassword(Request $request)
-    {
-        $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', PasswordRule::defaults(), 'confirmed'],
-            'token' => ['required'],
-        ]);
-
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                ])->save();
-
-                $user->setRememberToken(Str::random(60));
-
-                event(new PasswordReset($user));
-            }
-        );
-
-        if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')
-                ->with('success', 'Your password has been reset. Please log in with your new password.');
-        }
-
-        return back()->withErrors([
-            'email' => 'There was a problem resetting your password.',
-        ])->onlyInput('email');
-    }
-
-    /**
-     * Show the email verification notice.
-     */
-    public function verifyEmail(Request $request)
-    {
-        return view('auth.verify-email');
-    }
-
-    /**
-     * Verify the user's email address.
-     */
-    public function verify(Request $request, $id, $hash)
-    {
-        $user = User::findOrFail($id);
-
-        if (!hash_equals((string) $hash, sha1((string) $id))) {
-            return back()->withErrors([
-                'email' => 'Invalid verification link.',
-            ]);
-        }
-
-        if (!$user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
-            event(new Verified($user));
-        }
-
-        return redirect()->route('dashboard')
-            ->with('success', 'Your email has been verified successfully.');
-    }
-
-    /**
-     * Resend verification email.
-     */
-    public function resendVerification(Request $request)
-    {
-        $request->validate([
-            'email' => ['required', 'email'],
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            return back()->withErrors([
-                'email' => 'No user found with that email address.',
-            ])->onlyInput('email');
-        }
-
-        if ($user->hasVerifiedEmail()) {
-            return back()->with('success', 'Your email is already verified.');
-        }
-
-        $user->sendEmailVerificationNotification();
-
-        return back()->with('success', 'Verification link sent! Please check your email.');
     }
 }
