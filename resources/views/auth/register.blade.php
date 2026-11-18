@@ -1,68 +1,95 @@
-@extends('layouts.app')
+@extends('layouts.auth')
 
-@section('title', 'Register')
-@section('page_title', 'Create Account')
+@section('title', 'Create Account - RentMate')
+
+@section('header')
+<header class="bg-white/80 backdrop-blur-md border-b border-slate-200 shrink-0">
+    <div class="max-w-md mx-auto px-6 py-4 flex items-center justify-between">
+        <a href="{{ route('login') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-brand-600 transition-all">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span class="text-xs font-medium hidden sm:inline">Back</span>
+        </a>
+        <a href="{{ route('landing') }}" class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-sm shadow-brand-500/30">
+                <i data-lucide="home" class="w-5 h-5"></i>
+            </div>
+            <span class="text-lg font-bold tracking-tight text-slate-900">Rent<span class="text-brand-600">Mate</span></span>
+        </a>
+    </div>
+</header>
+@endsection
 
 @section('content')
-<div class="max-w-md mx-auto">
-    <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm">
-        <div class="text-center mb-8">
-            <div class="w-16 h-16 rounded-xl bg-gradient-to-tr from-teal-500 to-teal-400 flex items-center justify-center text-white mx-auto mb-4 shadow-md shadow-teal-500/20">
-                <i data-lucide="user-plus" class="w-8 h-8"></i>
+<div class="w-full max-w-md">
+
+    @component('components.auth-success')
+    @endcomponent
+
+    @component('components.auth-errors')
+    @endcomponent
+
+    <div class="text-center mb-10">
+        <div class="flex items-center justify-center mb-6">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+                <i data-lucide="user-plus" class="w-5 h-5"></i>
             </div>
-            <h2 class="text-2xl font-bold text-slate-800">Create Account</h2>
-            <p class="text-slate-500 mt-2">Join RentMate and start tracking your rental expenses</p>
         </div>
+        <h2 class="text-3xl font-bold tracking-tight text-slate-900 mb-2">Create your account</h2>
+        <p class="text-lg text-slate-600">Start managing your rental expenses with clarity and confidence.</p>
+    </div>
 
-        @if($errors->any())
-        <div class="mb-4 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm">
-            <ul class="list-disc list-inside space-y-1">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-        @endif
+    <form action="{{ route('register.store') }}" method="POST" class="space-y-6">
+        @csrf
 
-        <form action="{{ route('register.store') }}" method="POST" class="space-y-5">
-            @csrf
+        @component('components.auth-input', [
+            'name' => 'name',
+            'label' => 'Full Name',
+            'placeholder' => 'Sajan Poudel',
+            'icon' => 'user',
+            'autocomplete' => 'name',
+            'error' => $errors->first('name')
+        ])
+        @endcomponent
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">Full Name</label>
-                <input type="text" name="name" required value="{{ old('name') }}" placeholder="e.g. Sajan Poudel" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
-            </div>
+        @component('components.auth-input', [
+            'name' => 'email',
+            'label' => 'Email Address',
+            'type' => 'email',
+            'placeholder' => 'you@example.com',
+            'icon' => 'mail',
+            'autocomplete' => 'email',
+            'error' => $errors->first('email')
+        ])
+        @endcomponent
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">Email Address</label>
-                <input type="email" name="email" required value="{{ old('email') }}" placeholder="you@example.com" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
-            </div>
+        @component('components.auth-password', [
+            'name' => 'password',
+            'label' => 'Password',
+            'placeholder' => '••••••••',
+            'autocomplete' => 'new-password',
+            'error' => $errors->first('password')
+        ])
+        @endcomponent
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">Password</label>
-                <input type="password" name="password" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
-                <p class="text-[10px] text-slate-400 mt-1">At least 8 characters</p>
-            </div>
+        @component('components.auth-password', [
+            'name' => 'password_confirmation',
+            'label' => 'Confirm Password',
+            'placeholder' => '••••••••',
+            'autocomplete' => 'new-password',
+            'error' => $errors->first('password_confirmation')
+        ])
+        @endcomponent
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">Confirm Password</label>
-                <input type="password" name="password_confirmation" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
-            </div>
+        <x-auth-button text="Create account" />
 
-            <button type="submit" class="w-full py-3 px-4 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm shadow-teal-900/20 transition flex items-center justify-center gap-2">
-                <i data-lucide="user-plus" class="w-4 h-4"></i>
-                <span>Create Account</span>
-            </button>
-        </form>
-
-        <div class="mt-6 pt-6 border-t border-slate-100">
-            <p class="text-center text-xs text-slate-500 mb-4">
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <p class="text-center text-xs text-slate-500 mb-6">
                 Already have an account?
-                <a href="{{ route('login') }}" class="font-semibold text-teal-600 hover:text-teal-700">Sign in</a>
+                <a href="{{ route('login') }}" class="font-semibold text-brand-600 hover:text-brand-700 transition">Sign in</a>
             </p>
         </div>
-    </div>
+    </form>
 </div>
-
 @endsection
 
 @push('scripts')
@@ -70,5 +97,19 @@
     document.addEventListener('DOMContentLoaded', function() {
         if (window.lucide) window.lucide.createIcons();
     });
+
+    function togglePassword(inputId) {
+        const input = document.getElementById(inputId);
+        const button = input.parentElement.querySelector('button');
+        const icon = button.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.setAttribute('data-lucide', 'eye-off');
+        } else {
+            input.type = 'password';
+            icon.setAttribute('data-lucide', 'eye');
+        }
+        if (window.lucide) window.lucide.createIcons();
+    }
 </script>
 @endpush
