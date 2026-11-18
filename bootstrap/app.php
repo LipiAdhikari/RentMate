@@ -16,7 +16,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\EnsureAppKey::class,
             \App\Http\Middleware\HandleProductionErrors::class,
-            \App\Http\Middleware\CacheResponse::class,
             \App\Http\Middleware\EnsureSession::class,
         ]);
     })
