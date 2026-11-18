@@ -11,16 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop existing unique constraint on year + month (without user_id)
-        // This breaks multi-tenancy: two users can't have records for the same month
-        Schema::table('monthly_records', function (Blueprint $table) {
-            $table->dropUnique('monthly_records_year_month_unique');
-        });
+        // Drop existing unique constraint on year + month (without user_id) if it exists
+        if (Schema::hasIndex('monthly_records', 'monthly_records_year_month_unique')) {
+            Schema::table('monthly_records', function (Blueprint $table) {
+                $table->dropUnique('monthly_records_year_month_unique');
+            });
+        }
 
         // Add unique constraint including user_id for multi-tenancy support
-        Schema::table('monthly_records', function (Blueprint $table) {
-            $table->unique(['year', 'month', 'user_id'], 'monthly_records_year_month_user_id_unique');
-        });
+        if (! Schema::hasIndex('monthly_records', 'monthly_records_year_month_user_id_unique')) {
+            Schema::table('monthly_records', function (Blueprint $table) {
+                $table->unique(['year', 'month', 'user_id'], 'monthly_records_year_month_user_id_unique');
+            });
+        }
     }
 
     /**

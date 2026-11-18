@@ -8,28 +8,40 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('rental_settings', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->nullable()->after('id');
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-        });
+        // rental_settings
+        if (! Schema::hasColumn('rental_settings', 'user_id')) {
+            Schema::table('rental_settings', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->after('id');
+                $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+            });
+        }
 
-        Schema::table('monthly_records', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->nullable()->after('id');
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->index('user_id');
-        });
+        // monthly_records
+        if (! Schema::hasColumn('monthly_records', 'user_id')) {
+            Schema::table('monthly_records', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->after('id');
+                $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+                $table->index('user_id');
+            });
+        }
 
-        Schema::table('payments', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->nullable()->after('id');
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->index('user_id');
-        });
+        // payments
+        if (! Schema::hasColumn('payments', 'user_id')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->after('id');
+                $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+                $table->index('user_id');
+            });
+        }
 
-        Schema::table('additional_expenses', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->nullable()->after('id');
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->index('user_id');
-        });
+        // additional_expenses
+        if (! Schema::hasColumn('additional_expenses', 'user_id')) {
+            Schema::table('additional_expenses', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->after('id');
+                $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+                $table->index('user_id');
+            });
+        }
     }
 
     public function down(): void
