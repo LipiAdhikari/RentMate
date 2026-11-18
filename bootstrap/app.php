@@ -12,6 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+
+        $middleware->appendToGroup('web', [
+            \App\Http\Middleware\EnsureAppKey::class,
+            \App\Http\Middleware\HandleProductionErrors::class,
+            \App\Http\Middleware\CacheResponse::class,
+            \App\Http\Middleware\EnsureSession::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Don't log common HTTP errors to reduce log volume
