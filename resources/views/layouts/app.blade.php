@@ -263,7 +263,7 @@
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Rental Month to Clear *</label>
                     <select name="monthly_record_id" id="payment_modal_month" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border font-medium">
                         <option value="auto" selected>⚡ Auto-Apply to Oldest Unpaid Month (Recommended)</option>
-                        @foreach(\App\Models\MonthlyRecord::orderBy('record_date', 'desc')->get() as $rec)
+                        @foreach(\App\Models\MonthlyRecord::where('user_id', auth()->id())->orderBy('record_date', 'desc')->limit(20)->get() as $rec)
                             <option value="{{ $rec->id }}">
                                 {{ $rec->dual_month_label }} — Due: NPR {{ number_format($rec->balance, 2) }}
                             </option>

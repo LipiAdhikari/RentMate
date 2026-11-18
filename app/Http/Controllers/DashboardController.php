@@ -34,12 +34,22 @@ class DashboardController extends Controller
             ->first();
 
         // All-time aggregate totals dynamically calculated from DB for this user
-        $allTimeExpenses = (float) MonthlyRecord::where('user_id', $userId)->sum('total_expenses');
+        $monthlyAggregates = MonthlyRecord::where('user_id', $userId)
+            ->selectRaw('
+                SUM(total_expenses) as total_expenses,
+                SUM(balance) as total_balance,
+                SUM(rent_amount) as total_rent,
+                SUM(electricity_amount) as total_electricity,
+                SUM(water_amount) as total_water
+            ')
+            ->first();
+
+        $allTimeExpenses = (float) ($monthlyAggregates->total_expenses ?? 0);
+        $allTimeBalance = (float) ($monthlyAggregates->total_balance ?? 0);
+        $allTimeRent = (float) ($monthlyAggregates->total_rent ?? 0);
+        $allTimeElectricity = (float) ($monthlyAggregates->total_electricity ?? 0);
+        $allTimeWater = (float) ($monthlyAggregates->total_water ?? 0);
         $allTimePaid = (float) Payment::where('user_id', $userId)->sum('amount');
-        $allTimeBalance = (float) MonthlyRecord::where('user_id', $userId)->sum('balance');
-        $allTimeRent = (float) MonthlyRecord::where('user_id', $userId)->sum('rent_amount');
-        $allTimeElectricity = (float) MonthlyRecord::where('user_id', $userId)->sum('electricity_amount');
-        $allTimeWater = (float) MonthlyRecord::where('user_id', $userId)->sum('water_amount');
 
         // Unpaid or partially paid months for this user
         $unpaidRecords = MonthlyRecord::with('payments')

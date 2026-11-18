@@ -15,10 +15,13 @@ use Illuminate\Support\Facades\Route;
 
 // Guest routes (authentication)
 Route::get('/register', [AuthController::class, 'register'])->name('register');
-Route::post('/register', [AuthController::class, 'store'])->name('register.store');
 Route::get('/login', [AuthController::class, 'login'])->name('login');
-Route::post('/login', [AuthController::class, 'authenticate'])->name('login.authenticate');
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::middleware('throttle:5,1')->group(function () {
+    Route::post('/register', [AuthController::class, 'store'])->name('register.store');
+    Route::post('/login', [AuthController::class, 'authenticate'])->name('login.authenticate');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
 
 // Landing page (public)
 Route::get('/', [LandingController::class, 'index'])->name('landing');

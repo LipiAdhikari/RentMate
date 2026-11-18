@@ -9,21 +9,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rental_settings', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->constrained('users')->cascadeOnDelete()->after('id');
+            $table->unsignedBigInteger('user_id')->nullable()->after('id');
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
 
         Schema::table('monthly_records', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->constrained('users')->cascadeOnDelete()->after('id');
+            $table->unsignedBigInteger('user_id')->nullable()->after('id');
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->index('user_id');
         });
 
         Schema::table('payments', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->constrained('users')->cascadeOnDelete()->after('id');
+            $table->unsignedBigInteger('user_id')->nullable()->after('id');
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->index('user_id');
         });
 
         Schema::table('additional_expenses', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->constrained('users')->cascadeOnDelete()->after('id');
+            $table->unsignedBigInteger('user_id')->nullable()->after('id');
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->index('user_id');
         });
     }
