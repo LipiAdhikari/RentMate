@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RentalSetting extends Model
 {
@@ -12,6 +13,7 @@ class RentalSetting extends Model
     protected $table = 'rental_settings';
 
     protected $fillable = [
+        'user_id',
         'rent_amount',
         'electricity_rate',
         'water_share_percentage',
@@ -51,5 +53,10 @@ class RentalSetting extends Model
                 'payment_reminder_days' => 5,
             ]
         );
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

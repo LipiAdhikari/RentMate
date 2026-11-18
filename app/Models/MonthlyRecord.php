@@ -6,6 +6,7 @@ use App\Services\NepaliCalendar;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MonthlyRecord extends Model
@@ -15,6 +16,7 @@ class MonthlyRecord extends Model
     protected $table = 'monthly_records';
 
     protected $fillable = [
+        'user_id',
         'year',
         'month',
         'bs_year',
@@ -76,6 +78,11 @@ class MonthlyRecord extends Model
     public function additionalExpenses(): HasMany
     {
         return $this->hasMany(AdditionalExpense::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     protected static function booted()

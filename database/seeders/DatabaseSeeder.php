@@ -38,11 +38,11 @@ class DatabaseSeeder extends Seeder
         );
 
         // 2. Clear existing records if re-seeding
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::statement('SET session_replication_role = \'replica\';');
         MonthlyRecord::truncate();
         Payment::truncate();
         AdditionalExpense::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        DB::statement('SET session_replication_role = \'origin\';');
 
         // Sample data for past months (Jestha 2083 / May 2026 to Mangsir 2083 / November 2026)
         $records = [
