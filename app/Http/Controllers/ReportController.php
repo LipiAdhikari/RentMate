@@ -14,9 +14,11 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        $settings = RentalSetting::getActive();
+        $userId = auth()->id();
+        $settings = RentalSetting::where('user_id', $userId)->first();
 
         $query = MonthlyRecord::with(['payments', 'additionalExpenses'])
+            ->where('user_id', $userId)
             ->orderBy('record_date', 'asc');
 
         if ($request->filled('year')) {
@@ -33,7 +35,7 @@ class ReportController extends Controller
 
         $records = $query->get();
 
-        // Aggregates
+        // Aggregates for this user
         $totalRent = (float) $records->sum('rent_amount');
         $totalElectricity = (float) $records->sum('electricity_amount');
         $totalWater = (float) $records->sum('water_amount');
@@ -43,8 +45,12 @@ class ReportController extends Controller
         $totalBalance = (float) $records->sum('balance');
         $totalUnits = (float) $records->sum('electricity_units');
 
-        // Available years
-        $availableYears = MonthlyRecord::select('year')->distinct()->orderBy('year', 'desc')->pluck('year');
+        // Available years for this user
+        $availableYears = MonthlyRecord::where('user_id', $userId)
+            ->select('year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
 
         // Chart Data
         $chartLabels = [];
@@ -92,7 +98,10 @@ class ReportController extends Controller
 
     public function exportCsv(Request $request): StreamedResponse
     {
-        $query = MonthlyRecord::with('payments')->orderBy('record_date', 'asc');
+        $userId = auth()->id();
+        $query = MonthlyRecord::with('payments')
+            ->where('user_id', $userId)
+            ->orderBy('record_date', 'asc');
 
         if ($request->filled('year')) {
             $query->where('year', $request->year);
@@ -164,9 +173,12 @@ class ReportController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $settings = RentalSetting::getActive();
+        $userId = auth()->id();
+        $settings = RentalSetting::where('user_id', $userId)->first();
 
-        $query = MonthlyRecord::with(['payments', 'additionalExpenses'])->orderBy('record_date', 'asc');
+        $query = MonthlyRecord::with(['payments', 'additionalExpenses'])
+            ->where('user_id', $userId)
+            ->orderBy('record_date', 'asc');
 
         if ($request->filled('year')) {
             $query->where('year', $request->year);

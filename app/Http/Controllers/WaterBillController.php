@@ -5,14 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\MonthlyRecord;
 use App\Models\RentalSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class WaterBillController extends Controller
 {
     public function index()
     {
-        $settings = RentalSetting::getActive();
+        $userId = auth()->id();
+        $settings = RentalSetting::where('user_id', $userId)->first();
 
-        $records = MonthlyRecord::orderBy('record_date', 'desc')->get();
+        $records = MonthlyRecord::where('user_id', $userId)->orderBy('record_date', 'desc')->get();
 
         $totalWaterBills = (float) $records->sum('total_water_bill');
         $tenantTotalShare = (float) $records->sum('water_amount');
@@ -20,7 +22,7 @@ class WaterBillController extends Controller
         $avgTenantShare = $records->count() > 0 ? round($tenantTotalShare / $records->count(), 2) : 0;
 
         // Chart data
-        $chartRecords = MonthlyRecord::orderBy('record_date', 'asc')->get();
+        $chartRecords = MonthlyRecord::where('user_id', $userId)->orderBy('record_date', 'asc')->get();
         $chartLabels = [];
         $chartTenantShares = [];
         $chartOwnerShares = [];
@@ -46,12 +48,18 @@ class WaterBillController extends Controller
 
     public function updateBill(Request $request, MonthlyRecord $monthlyRecord)
     {
+        // Ensure user owns this record
+        if ($monthlyRecord->user_id !== auth()->id()) {
+            abort(403, 'You do not own this record.');
+        }
+
         $validated = $request->validate([
             'total_water_bill' => ['required', 'numeric', 'min:0'],
             'tenant_water_percentage' => ['required', 'numeric', 'between:0,100'],
         ]);
 
         $monthlyRecord->update([
+            'user_id' => auth()->id(),
             'total_water_bill' => $validated['total_water_bill'],
             'tenant_water_percentage' => $validated['tenant_water_percentage'],
         ]);

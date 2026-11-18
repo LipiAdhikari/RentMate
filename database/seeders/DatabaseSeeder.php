@@ -6,10 +6,12 @@ use App\Models\AdditionalExpense;
 use App\Models\MonthlyRecord;
 use App\Models\Payment;
 use App\Models\RentalSetting;
+use App\Models\User;
 use App\Services\NepaliCalendar;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,9 +20,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Seed Rental Settings
+        // 1. Create default user
+        $user = User::updateOrCreate(
+            ['email' => 'tenant@rentmate.com'],
+            [
+                'name' => 'Sajan Poudel',
+                'password' => Hash::make('password123'),
+            ]
+        );
+
+        // 2. Seed Rental Settings for the user
         RentalSetting::updateOrCreate(
-            ['id' => 1],
+            ['user_id' => $user->id],
             [
                 'rent_amount' => 16000.00,
                 'electricity_rate' => 10.00,
@@ -37,11 +48,11 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 2. Clear existing records if re-seeding
+        // 3. Clear existing records if re-seeding (PostgreSQL compatible)
         DB::statement('SET session_replication_role = \'replica\';');
-        MonthlyRecord::truncate();
-        Payment::truncate();
-        AdditionalExpense::truncate();
+        MonthlyRecord::where('user_id', $user->id)->delete();
+        Payment::where('user_id', $user->id)->delete();
+        AdditionalExpense::where('user_id', $user->id)->delete();
         DB::statement('SET session_replication_role = \'origin\';');
 
         // Sample data for past months (Jestha 2083 / May 2026 to Mangsir 2083 / November 2026)
@@ -172,6 +183,7 @@ class DatabaseSeeder extends Seeder
             $nepaliMonthName = $monthInfo['en'] . ' (' . $monthInfo['np'] . ')';
 
             $record = MonthlyRecord::create([
+                'user_id' => $user->id,
                 'year' => $item['year'],
                 'month' => $item['month'],
                 'bs_year' => $item['bs_year'],
@@ -192,7 +204,12 @@ class DatabaseSeeder extends Seeder
 
             if (!empty($item['expenses'])) {
                 foreach ($item['expenses'] as $exp) {
-                    $record->additionalExpenses()->create($exp);
+                    $record->additionalExpenses()->create([
+                        'user_id' => $user->id,
+                        'title' => $exp['title'],
+                        'amount' => $exp['amount'],
+                        'category' => $exp['category'],
+                    ]);
                 }
             }
 
@@ -200,6 +217,7 @@ class DatabaseSeeder extends Seeder
                 foreach ($item['payments'] as $pay) {
                     $bsPay = NepaliCalendar::adToBs($pay['date']);
                     $record->payments()->create([
+                        'user_id' => $user->id,
                         'payment_date' => $pay['date'],
                         'bs_payment_date' => $bsPay['formatted'] . ' (' . $bsPay['month_np'] . ')',
                         'amount' => $pay['amount'],

@@ -13,46 +13,52 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $settings = RentalSetting::getActive();
+        $userId = auth()->id();
+        $settings = RentalSetting::where('user_id', $userId)->first();
         $now = Carbon::now();
         $currentYear = $now->year;
         $currentMonth = $now->month;
         $todayBs = NepaliCalendar::today();
 
-        // Current month record
+        // Current month record for this user
         $currentMonthRecord = MonthlyRecord::with(['payments', 'additionalExpenses'])
+            ->where('user_id', $userId)
             ->where('year', $currentYear)
             ->where('month', $currentMonth)
             ->first();
 
-        // If current month record doesn't exist, get the most recent recorded month
+        // If current month record doesn't exist, get the most recent recorded month for this user
         $activeDisplayRecord = $currentMonthRecord ?? MonthlyRecord::with(['payments', 'additionalExpenses'])
+            ->where('user_id', $userId)
             ->orderBy('record_date', 'desc')
             ->first();
 
-        // All-time aggregate totals dynamically calculated from DB
-        $allTimeExpenses = (float) MonthlyRecord::sum('total_expenses');
-        $allTimePaid = (float) Payment::sum('amount');
-        $allTimeBalance = (float) MonthlyRecord::sum('balance');
-        $allTimeRent = (float) MonthlyRecord::sum('rent_amount');
-        $allTimeElectricity = (float) MonthlyRecord::sum('electricity_amount');
-        $allTimeWater = (float) MonthlyRecord::sum('water_amount');
+        // All-time aggregate totals dynamically calculated from DB for this user
+        $allTimeExpenses = (float) MonthlyRecord::where('user_id', $userId)->sum('total_expenses');
+        $allTimePaid = (float) Payment::where('user_id', $userId)->sum('amount');
+        $allTimeBalance = (float) MonthlyRecord::where('user_id', $userId)->sum('balance');
+        $allTimeRent = (float) MonthlyRecord::where('user_id', $userId)->sum('rent_amount');
+        $allTimeElectricity = (float) MonthlyRecord::where('user_id', $userId)->sum('electricity_amount');
+        $allTimeWater = (float) MonthlyRecord::where('user_id', $userId)->sum('water_amount');
 
-        // Unpaid or partially paid months (sorted oldest to newest so oldest pending comes first)
+        // Unpaid or partially paid months for this user
         $unpaidRecords = MonthlyRecord::with('payments')
+            ->where('user_id', $userId)
             ->whereIn('status', ['unpaid', 'partially_paid'])
             ->orderBy('record_date', 'asc')
             ->get();
 
-        // Recent payment transactions (last 6)
+        // Recent payment transactions for this user
         $recentPayments = Payment::with('monthlyRecord')
+            ->where('user_id', $userId)
             ->orderBy('payment_date', 'desc')
             ->orderBy('id', 'desc')
             ->limit(6)
             ->get();
 
-        // Monthly trends for Chart.js (ordered chronologically)
-        $historyRecords = MonthlyRecord::orderBy('record_date', 'asc')
+        // Monthly trends for Chart.js for this user
+        $historyRecords = MonthlyRecord::where('user_id', $userId)
+            ->orderBy('record_date', 'asc')
             ->limit(12)
             ->get();
 

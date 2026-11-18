@@ -68,6 +68,7 @@
 
             <!-- Navigation Links -->
             <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+                @auth
                 <a href="{{ route('dashboard') }}" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('dashboard') ? 'bg-teal-600/15 text-teal-400 border border-teal-500/20' : 'text-slate-300 hover:bg-slate-800/60 hover:text-white' }}">
                     <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 {{ request()->routeIs('dashboard') ? 'text-teal-400' : 'text-slate-400' }}"></i>
                     Dashboard
@@ -111,6 +112,36 @@
                     <i data-lucide="sliders" class="w-5 h-5 mr-3 {{ request()->routeIs('settings.*') ? 'text-teal-400' : 'text-slate-400' }}"></i>
                     Rental Settings
                 </a>
+
+                <div class="pt-4 pb-2">
+                    <div class="px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Account</div>
+                </div>
+
+                <a href="{{ route('profile.show') }}" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('profile.*') ? 'bg-teal-600/15 text-teal-400 border border-teal-500/20' : 'text-slate-300 hover:bg-slate-800/60 hover:text-white' }}">
+                    <i data-lucide="user" class="w-5 h-5 mr-3 {{ request()->routeIs('profile.*') ? 'text-teal-400' : 'text-slate-400' }}"></i>
+                    My Profile
+                </a>
+
+                <form action="{{ route('logout') }}" method="POST" class="flex items-center px-3 py-2.5">
+                    @csrf
+                    <button type="submit" class="flex items-center px-3 py-2.5 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-900/20 rounded-lg transition w-full">
+                        <i data-lucide="log-out" class="w-5 h-5 mr-3"></i>
+                        Logout
+                    </button>
+                </form>
+
+                @else
+                <div class="px-4 mb-4 bg-navy-950/60 rounded-xl p-4 border border-slate-700/50">
+                    <h3 class="text-sm font-bold text-white mb-2">Welcome to RentMate</h3>
+                    <p class="text-xs text-slate-400 mb-3">Track your rent, utilities, and payments.</p>
+                    <a href="{{ route('login') }}" class="block w-full py-2.5 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm shadow-teal-900/20 transition text-center">
+                        Sign In
+                    </a>
+                    <a href="{{ route('register') }}" class="mt-2 block w-full py-2 text-xs font-semibold text-slate-300 hover:text-white border border-slate-600 rounded-lg transition text-center">
+                        Create Account
+                    </a>
+                </div>
+                @endauth
             </nav>
 
             <!-- Bottom Information Card -->

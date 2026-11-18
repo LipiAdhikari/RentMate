@@ -8,15 +8,20 @@ use App\Models\RentalSetting;
 use App\Services\NepaliCalendar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
     public function index(Request $request)
     {
-        $settings = RentalSetting::getActive();
+        $userId = auth()->id();
+        $settings = RentalSetting::where('user_id', $userId)->first();
 
-        $query = Payment::with('monthlyRecord')->orderBy('payment_date', 'desc')->orderBy('id', 'desc');
+        $query = Payment::with('monthlyRecord')
+            ->where('user_id', $userId)
+            ->orderBy('payment_date', 'desc')
+            ->orderBy('id', 'desc');
 
         if ($request->filled('method')) {
             $query->where('payment_method', $request->method);
@@ -28,15 +33,17 @@ class PaymentController extends Controller
 
         $payments = $query->paginate(15)->withQueryString();
 
-        // Summary metrics
-        $totalPaid = (float) Payment::sum('amount');
-        $esewaTotal = (float) Payment::where('payment_method', 'eSewa')->sum('amount');
-        $khaltiTotal = (float) Payment::where('payment_method', 'Khalti')->sum('amount');
-        $bankTotal = (float) Payment::where('payment_method', 'Bank Transfer')->sum('amount');
-        $cashTotal = (float) Payment::where('payment_method', 'Cash')->sum('amount');
+        // Summary metrics for this user
+        $totalPaid = (float) Payment::where('user_id', $userId)->sum('amount');
+        $esewaTotal = (float) Payment::where('user_id', $userId)->where('payment_method', 'eSewa')->sum('amount');
+        $khaltiTotal = (float) Payment::where('user_id', $userId)->where('payment_method', 'Khalti')->sum('amount');
+        $bankTotal = (float) Payment::where('user_id', $userId)->where('payment_method', 'Bank Transfer')->sum('amount');
+        $cashTotal = (float) Payment::where('user_id', $userId)->where('payment_method', 'Cash')->sum('amount');
 
-        // All monthly records for the "Add Payment" dropdown
-        $monthlyRecords = MonthlyRecord::orderBy('record_date', 'desc')->get();
+        // All monthly records for this user for the "Add Payment" dropdown
+        $monthlyRecords = MonthlyRecord::where('user_id', $userId)
+            ->orderBy('record_date', 'desc')
+            ->get();
 
         return view('payments.index', compact(
             'payments',
@@ -63,15 +70,19 @@ class PaymentController extends Controller
 
         // Auto-allocate to oldest unpaid month if requested or empty
         if (empty($validated['monthly_record_id']) || $validated['monthly_record_id'] === 'auto') {
-            $targetRecord = MonthlyRecord::whereIn('status', ['unpaid', 'partially_paid'])
+            $targetRecord = MonthlyRecord::where('user_id', auth()->id())
+                ->whereIn('status', ['unpaid', 'partially_paid'])
                 ->orderBy('record_date', 'asc')
                 ->first();
 
             if (!$targetRecord) {
-                $targetRecord = MonthlyRecord::orderBy('record_date', 'desc')->firstOrFail();
+                $targetRecord = MonthlyRecord::where('user_id', auth()->id())
+                    ->orderBy('record_date', 'desc')
+                    ->firstOrFail();
             }
         } else {
-            $targetRecord = MonthlyRecord::findOrFail($validated['monthly_record_id']);
+            $targetRecord = MonthlyRecord::where('user_id', auth()->id())
+                ->findOrFail($validated['monthly_record_id']);
         }
 
         $paymentDate = Carbon::parse($validated['payment_date']);
@@ -87,6 +98,7 @@ class PaymentController extends Controller
 
         DB::transaction(function () use ($targetRecord, $validated, $bsPaymentDate, $daysLate) {
             $targetRecord->payments()->create([
+                'user_id' => auth()->id(),
                 'payment_date' => $validated['payment_date'],
                 'bs_payment_date' => $bsPaymentDate,
                 'amount' => $validated['amount'],
@@ -118,6 +130,11 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment)
     {
+        // Ensure user owns this payment
+        if ($payment->user_id !== auth()->id()) {
+            abort(403, 'You do not own this payment.');
+        }
+
         $monthlyRecord = $payment->monthlyRecord;
         $amount = $payment->amount;
 

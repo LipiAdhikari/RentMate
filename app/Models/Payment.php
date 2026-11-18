@@ -15,6 +15,7 @@ class Payment extends Model
     protected $table = 'payments';
 
     protected $fillable = [
+        'user_id',
         'monthly_record_id',
         'payment_date',
         'bs_payment_date',
@@ -36,6 +37,11 @@ class Payment extends Model
     public function monthlyRecord(): BelongsTo
     {
         return $this->belongsTo(MonthlyRecord::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     protected static function booted()

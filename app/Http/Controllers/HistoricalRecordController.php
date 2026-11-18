@@ -6,6 +6,7 @@ use App\Models\MonthlyRecord;
 use App\Models\RentalSetting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -13,9 +14,11 @@ class HistoricalRecordController extends Controller
 {
     public function index(Request $request)
     {
-        $settings = RentalSetting::getActive();
+        $userId = auth()->id();
+        $settings = RentalSetting::where('user_id', $userId)->first();
 
         $query = MonthlyRecord::with('payments')
+            ->where('user_id', $userId)
             ->where('is_historical', true)
             ->orderBy('record_date', 'desc');
 
@@ -29,12 +32,12 @@ class HistoricalRecordController extends Controller
 
         $records = $query->paginate(12)->withQueryString();
 
-        // Historical statistics
-        $totalHistoricalExpenses = (float) MonthlyRecord::where('is_historical', true)->sum('total_expenses');
-        $totalHistoricalPaid = (float) MonthlyRecord::where('is_historical', true)->sum('total_paid');
-        $totalHistoricalBalance = (float) MonthlyRecord::where('is_historical', true)->sum('balance');
-        $verifiedCount = MonthlyRecord::where('is_historical', true)->where('is_verified', true)->count();
-        $estimatedCount = MonthlyRecord::where('is_historical', true)->where('is_verified', false)->count();
+        // Historical statistics for this user
+        $totalHistoricalExpenses = (float) MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->sum('total_expenses');
+        $totalHistoricalPaid = (float) MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->sum('total_paid');
+        $totalHistoricalBalance = (float) MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->sum('balance');
+        $verifiedCount = MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->where('is_verified', true)->count();
+        $estimatedCount = MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->where('is_verified', false)->count();
 
         return view('historical.index', compact(
             'records',
@@ -49,7 +52,7 @@ class HistoricalRecordController extends Controller
 
     public function create()
     {
-        $settings = RentalSetting::getActive();
+        $settings = RentalSetting::where('user_id', auth()->id())->first();
 
         // Default to 12 months ago or previous month
         $defaultYear = Carbon::now()->subYear()->year;
@@ -66,7 +69,9 @@ class HistoricalRecordController extends Controller
                 'integer',
                 'min:2000',
                 'max:2100',
-                Rule::unique('monthly_records')->where(fn ($query) => $query->where('month', $request->month)),
+                Rule::unique('monthly_records')->where(fn ($query) => $query
+                    ->where('user_id', auth()->id())
+                    ->where('month', $request->month)),
             ],
             'month' => ['required', 'integer', 'between:1,12'],
             'rent_amount' => ['required', 'numeric', 'min:0'],
@@ -99,6 +104,7 @@ class HistoricalRecordController extends Controller
             $recordDate = Carbon::createFromDate($validated['year'], $validated['month'], 1)->toDateString();
 
             $record = MonthlyRecord::create([
+                'user_id' => auth()->id(),
                 'year' => $validated['year'],
                 'month' => $validated['month'],
                 'record_date' => $recordDate,
@@ -116,6 +122,7 @@ class HistoricalRecordController extends Controller
             // If user logged an actual payment they remember
             if (!empty($validated['payment_amount'])) {
                 $record->payments()->create([
+                    'user_id' => auth()->id(),
                     'payment_date' => $validated['payment_date'] ?? $recordDate,
                     'amount' => $validated['payment_amount'],
                     'payment_method' => $validated['payment_method'] ?? 'Cash',

@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\RentalSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SettingController extends Controller
 {
     public function index()
     {
-        $settings = RentalSetting::getActive();
+        $settings = RentalSetting::where('user_id', Auth::id())->first();
 
         return view('settings.index', compact('settings'));
     }
@@ -30,7 +31,7 @@ class SettingController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $settings = RentalSetting::getActive();
+        $settings = RentalSetting::where('user_id', Auth::id())->first();
         $settings->update($validated);
 
         return redirect()->route('settings.index')
