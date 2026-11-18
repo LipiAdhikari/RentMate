@@ -285,11 +285,15 @@ class RentMateTest extends TestCase
     /** Nepali Calendar unit validation */
     public function test_nepali_calendar_conversion_accuracy(): void
     {
-        $bs = NepaliCalendar::adToBs('2026-11-17');
+        // 18 November 2026 is exactly Mangsir 2, 2083 BS
+        $bs = NepaliCalendar::adToBs('2026-11-18');
         $this->assertEquals(2083, $bs['year']);
         $this->assertEquals(8, $bs['month']); // Mangsir
+        $this->assertEquals(2, $bs['day']);   // Day 2
         $this->assertEquals('Mangsir', $bs['month_en']);
         $this->assertEquals('मंसिर', $bs['month_np']);
+        $this->assertEquals('Mangsir 02, 2083', $bs['formatted']);
+        $this->assertEquals('मंसिर २, २०८३', $bs['formatted_np']);
     }
 
     /** Smoke tests for all routes */
