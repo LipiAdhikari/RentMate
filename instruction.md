@@ -293,6 +293,7 @@ Do not skip backend implementation by building only a frontend mockup.
 Do not delete or overwrite existing project files without inspecting them first.
 
 If a required dependency is missing, explain it and install it only when appropriate.
+h
 
 # TESTING REQUIREMENTS
 
@@ -378,7 +379,9 @@ RentMate is built on Laravel 12 utilizing modern MVC architecture and financial 
 All financial columns strictly use `DECIMAL(10,2)` rather than floating-point types to eliminate IEEE 754 rounding errors.
 
 ### `rental_settings`
+
 Global active defaults for future monthly records.
+
 - `id` (PK, unsigned bigint)
 - `rent_amount` (`DECIMAL(10,2)`, default: `16000.00`)
 - `electricity_rate` (`DECIMAL(10,2)`, default: `10.00`)
@@ -391,7 +394,9 @@ Global active defaults for future monthly records.
 - `timestamps`
 
 ### `monthly_records`
+
 Core monthly ledger records. Preserves contractual rates at time of entry.
+
 - `id` (PK, unsigned bigint)
 - `year` (`SMALLINT UNSIGNED`, e.g. `2026`)
 - `month` (`TINYINT UNSIGNED`, 1–12)
@@ -417,7 +422,9 @@ Core monthly ledger records. Preserves contractual rates at time of entry.
 - Unique Index: `['year', 'month']` prevents duplicate records for the same month.
 
 ### `payments`
+
 Individual payment transactions. Supports multiple installments.
+
 - `id` (PK, unsigned bigint)
 - `monthly_record_id` (FK references `monthly_records.id` ON DELETE CASCADE)
 - `payment_date` (`DATE`, indexed)
@@ -428,7 +435,9 @@ Individual payment transactions. Supports multiple installments.
 - `timestamps`
 
 ### `additional_expenses`
+
 Discretionary or variable monthly charges (waste management, repairs, shared internet).
+
 - `id` (PK, unsigned bigint)
 - `monthly_record_id` (FK references `monthly_records.id` ON DELETE CASCADE)
 - `title` (`VARCHAR(255)`)
@@ -465,10 +474,10 @@ All balance calculations occur server-side through `MonthlyRecord::recalculate(b
    $$\text{Balance} = \text{Total Expenses} - \text{Total Paid}$$
 
 7. **Status Determinant**:
-   - $\text{Total Paid} \le 0 \implies \text{unpaid}$
-   - $0 < \text{Total Paid} < \text{Total Expenses} \implies \text{partially\_paid}$
-   - $\text{Total Paid} = \text{Total Expenses} \implies \text{paid}$
-   - $\text{Total Paid} > \text{Total Expenses} \implies \text{overpaid}$
+    - $\text{Total Paid} \le 0 \implies \text{unpaid}$
+    - $0 < \text{Total Paid} < \text{Total Expenses} \implies \text{partially\_paid}$
+    - $\text{Total Paid} = \text{Total Expenses} \implies \text{paid}$
+    - $\text{Total Paid} > \text{Total Expenses} \implies \text{overpaid}$
 
 Whenever a `Payment` or `AdditionalExpense` is saved or deleted, Eloquent lifecycle hooks (`saved`, `deleted`) automatically invoke `recalculate(true)` on the parent `MonthlyRecord`, ensuring 100% data consistency.
 
@@ -479,20 +488,20 @@ Whenever a `Payment` or `AdditionalExpense` is saved or deleted, Eloquent lifecy
 The RentMate architecture is structured for easy forward extension:
 
 1. **Multi-Property or Multi-Tenant Mode**:
-   - Add a `properties` or `tenancies` table.
-   - Add `property_id` foreign key to `monthly_records` and `rental_settings`.
-   - Update routes and scopes using `TenantScope` or middleware.
+    - Add a `properties` or `tenancies` table.
+    - Add `property_id` foreign key to `monthly_records` and `rental_settings`.
+    - Update routes and scopes using `TenantScope` or middleware.
 
 2. **Automated Reminders & Notifications (SMS / Email)**:
-   - Schedule an Artisan command in `routes/console.php`:
-     ```php
-     Schedule::command('rentmate:send-reminders')->dailyAt('09:00');
-     ```
-   - Connect to local SMS gateways (Sparrow SMS, Aakash SMS in Nepal) using HTTP Guzzle.
+    - Schedule an Artisan command in `routes/console.php`:
+        ```php
+        Schedule::command('rentmate:send-reminders')->dailyAt('09:00');
+        ```
+    - Connect to local SMS gateways (Sparrow SMS, Aakash SMS in Nepal) using HTTP Guzzle.
 
 3. **Meter Reading Photo Uploads**:
-   - Add `meter_photo_path` to `monthly_records`.
-   - Use Laravel Flysystem Local or S3 storage disk to allow tenants to snap photo evidence of their electricity meter each month.
+    - Add `meter_photo_path` to `monthly_records`.
+    - Use Laravel Flysystem Local or S3 storage disk to allow tenants to snap photo evidence of their electricity meter each month.
 
 4. **Direct Digital Wallet API Integration**:
-   - Integrate eSewa ePay or Khalti Payment Gateway webhooks into `PaymentController` to verify transactions via API.
+    - Integrate eSewa ePay or Khalti Payment Gateway webhooks into `PaymentController` to verify transactions via API.
