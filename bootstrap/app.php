@@ -14,13 +14,20 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
-        // Add APP_KEY check middleware
+        // Add production error handling middleware
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\EnsureAppKey::class,
+            \App\Http\Middleware\HandleProductionErrors::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Database\QueryException $e, $request) {
+            Log::error('Database error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
             if (config('app.debug')) {
                 return response()->json([
                     'message' => 'Database error',
@@ -28,13 +35,18 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 500);
             }
 
-            Log::error('Database error: '.$e->getMessage());
-
-            return response()->view('errors.500', [], 500);
+            return response()->view('errors.500', [
+                'message' => 'Database connection error. Please check your Supabase connection settings in Railway Variables.',
+            ], 500);
         })->render(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            Log::warning('Session expired: ' . $e->getMessage());
             return back()->withErrors(['session' => 'Your session has expired. Please refresh the page and try again.'])->withInput();
         })->render(function (\Throwable $e, $request) {
-            Log::error('Unhandled exception: '.$e->getMessage().' at '.$e->getFile().':'.$e->getLine());
+            Log::error('Unhandled exception: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             if (config('app.debug')) {
                 return response()->json([

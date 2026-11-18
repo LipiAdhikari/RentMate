@@ -8,6 +8,7 @@ use App\Models\RentalSetting;
 use App\Services\NepaliCalendar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -32,23 +33,28 @@ class DashboardController extends Controller
             ->orderBy('record_date', 'desc')
             ->first();
 
-        // All-time aggregate totals dynamically calculated from DB for this user
-        $monthlyAggregates = MonthlyRecord::forUser($userId)
-            ->selectRaw('
-                SUM(total_expenses) as total_expenses,
-                SUM(balance) as total_balance,
-                SUM(rent_amount) as total_rent,
-                SUM(electricity_amount) as total_electricity,
-                SUM(water_amount) as total_water
-            ')
-            ->first();
+        // All-time aggregate totals - cached for 5 minutes
+        $cacheKey = 'dashboard_aggregates_' . $userId;
+        $monthlyAggregates = Cache::remember($cacheKey, 300, function () use ($userId) {
+            return MonthlyRecord::forUser($userId)
+                ->selectRaw('
+                    SUM(total_expenses) as total_expenses,
+                    SUM(balance) as total_balance,
+                    SUM(rent_amount) as total_rent,
+                    SUM(electricity_amount) as total_electricity,
+                    SUM(water_amount) as total_water
+                ')
+                ->first();
+        });
 
         $allTimeExpenses = (float) ($monthlyAggregates->total_expenses ?? 0);
         $allTimeBalance = (float) ($monthlyAggregates->total_balance ?? 0);
         $allTimeRent = (float) ($monthlyAggregates->total_rent ?? 0);
         $allTimeElectricity = (float) ($monthlyAggregates->total_electricity ?? 0);
         $allTimeWater = (float) ($monthlyAggregates->total_water ?? 0);
-        $allTimePaid = (float) Payment::forUser($userId)->sum('amount');
+        $allTimePaid = (float) Cache::remember('dashboard_paid_' . $userId, 300, function () use ($userId) {
+            return Payment::forUser($userId)->sum('amount');
+        });
 
         // Unpaid or partially paid months for this user
         $unpaidRecords = MonthlyRecord::forUser($userId)

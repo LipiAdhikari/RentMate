@@ -9,6 +9,7 @@ use App\Services\NepaliCalendar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -34,12 +35,23 @@ class PaymentController extends Controller
 
         $payments = $query->paginate(15)->withQueryString();
 
-        // Summary metrics for this user
-        $totalPaid = (float) Payment::forUser($userId)->sum('amount');
-        $esewaTotal = (float) Payment::forUser($userId)->byMethod('eSewa')->sum('amount');
-        $khaltiTotal = (float) Payment::forUser($userId)->byMethod('Khalti')->sum('amount');
-        $bankTotal = (float) Payment::forUser($userId)->byMethod('Bank Transfer')->sum('amount');
-        $cashTotal = (float) Payment::forUser($userId)->byMethod('Cash')->sum('amount');
+        // Summary metrics for this user - cached for 5 minutes
+        $cacheKey = 'payment_summary_' . $userId;
+        $paymentSummary = Cache::remember($cacheKey, 300, function () use ($userId) {
+            return [
+                'totalPaid' => (float) Payment::forUser($userId)->sum('amount'),
+                'esewaTotal' => (float) Payment::forUser($userId)->byMethod('eSewa')->sum('amount'),
+                'khaltiTotal' => (float) Payment::forUser($userId)->byMethod('Khalti')->sum('amount'),
+                'bankTotal' => (float) Payment::forUser($userId)->byMethod('Bank Transfer')->sum('amount'),
+                'cashTotal' => (float) Payment::forUser($userId)->byMethod('Cash')->sum('amount'),
+            ];
+        });
+
+        $totalPaid = $paymentSummary['totalPaid'];
+        $esewaTotal = $paymentSummary['esewaTotal'];
+        $khaltiTotal = $paymentSummary['khaltiTotal'];
+        $bankTotal = $paymentSummary['bankTotal'];
+        $cashTotal = $paymentSummary['cashTotal'];
 
         // All monthly records for this user for the "Add Payment" dropdown
         $monthlyRecords = MonthlyRecord::forUser($userId)
@@ -114,6 +126,12 @@ class PaymentController extends Controller
 
         $targetRecord->refresh();
 
+        // Clear payment cache for this user
+        Cache::forget('payment_summary_' . auth()->id());
+        // Clear dashboard cache too since payment affects dashboard
+        Cache::forget('dashboard_aggregates_' . auth()->id());
+        Cache::forget('dashboard_paid_' . auth()->id());
+
         // Build notification message highlighting the smart detection
         $formattedAmount = number_format($validated['amount'], 2);
         $monthLabel = $targetRecord->dual_month_label;
@@ -143,6 +161,11 @@ class PaymentController extends Controller
             $payment->delete();
             $monthlyRecord?->recalculate(true);
         });
+
+        // Clear payment cache for this user
+        Cache::forget('payment_summary_' . auth()->id());
+        Cache::forget('dashboard_aggregates_' . auth()->id());
+        Cache::forget('dashboard_paid_' . auth()->id());
 
         return redirect()->back()->with('success', 'Payment transaction of NPR ' . number_format($amount, 2) . ' deleted successfully.');
     }

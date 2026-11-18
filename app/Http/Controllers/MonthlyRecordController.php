@@ -8,6 +8,7 @@ use App\Services\NepaliCalendar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -168,6 +169,10 @@ class MonthlyRecordController extends Controller
             return $record;
         });
 
+        // Clear dashboard cache for this user
+        Cache::forget('dashboard_aggregates_' . auth()->id());
+        Cache::forget('dashboard_paid_' . auth()->id());
+
         return redirect()->route('monthly-records.show', $record)
             ->with('success', 'Monthly record for ' . $record->dual_month_label . ' created successfully.');
     }
@@ -280,6 +285,10 @@ class MonthlyRecordController extends Controller
             $monthlyRecord->recalculate(true);
         });
 
+        // Clear dashboard cache for this user
+        Cache::forget('dashboard_aggregates_' . auth()->id());
+        Cache::forget('dashboard_paid_' . auth()->id());
+
         return redirect()->route('monthly-records.show', $monthlyRecord)
             ->with('success', 'Monthly record for ' . $monthlyRecord->dual_month_label . ' updated successfully.');
     }
@@ -292,6 +301,10 @@ class MonthlyRecordController extends Controller
 
         $monthName = $monthlyRecord->dual_month_label;
         $monthlyRecord->delete();
+
+        // Clear dashboard cache for this user
+        Cache::forget('dashboard_aggregates_' . auth()->id());
+        Cache::forget('dashboard_paid_' . auth()->id());
 
         return redirect()->route('monthly-records.index')
             ->with('success', 'Record for ' . $monthName . ' and its associated payments were deleted.');
