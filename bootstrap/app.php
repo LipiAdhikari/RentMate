@@ -17,7 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureAppKey::class,
             \App\Http\Middleware\HandleProductionErrors::class,
             \App\Http\Middleware\CacheResponse::class,
-            \App\Http\Middleware\EnsureAuthenticated::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
