@@ -44,6 +44,30 @@ class Payment extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Scope: Filter by specific user.
+     */
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope: Filter by payment method.
+     */
+    public function scopeByMethod($query, string $method)
+    {
+        return $query->where('payment_method', $method);
+    }
+
+    /**
+     * Scope: Filter by date range.
+     */
+    public function scopeDateRange($query, string $from, string $to)
+    {
+        return $query->whereBetween('payment_date', [$from, $to]);
+    }
+
     protected static function booted()
     {
         static::creating(function ($payment) {

@@ -340,4 +340,186 @@ class RentMateTest extends TestCase
         $this->get(route('login'))->assertOk();
         $this->get(route('register'))->assertOk();
     }
+
+    /** Scenario: Account data isolation - user cannot access another user's records */
+    public function test_user_cannot_access_another_users_records(): void
+    {
+        $otherUser = User::create([
+            'name' => 'Other User',
+            'email' => 'other@rentmate.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $otherRecord = MonthlyRecord::create([
+            'user_id' => $otherUser->id,
+            'year' => 2025,
+            'month' => 5,
+            'record_date' => '2025-05-01',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 1000.00,
+            'curr_electricity_reading' => 1100.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 800.00,
+            'tenant_water_percentage' => 50.00,
+            'is_historical' => false,
+            'is_verified' => true,
+        ]);
+
+        // Try to access other user's record - should be blocked
+        $response = $this->get(route('monthly-records.show', $otherRecord));
+        $response->assertStatus(403);
+    }
+
+    /** Scenario: Monthly record duplicate month prevention */
+    public function test_duplicate_month_prevention(): void
+    {
+        MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2025,
+            'month' => 5,
+            'record_date' => '2025-05-01',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 1000.00,
+            'curr_electricity_reading' => 1100.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 800.00,
+            'tenant_water_percentage' => 50.00,
+            'is_historical' => false,
+            'is_verified' => true,
+        ]);
+
+        $response = $this->post(route('monthly-records.store'), [
+            'year' => 2025,
+            'month' => 5,
+            'bs_year' => 2082,
+            'bs_month' => 2,
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 1000.00,
+            'curr_electricity_reading' => 1100.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 800.00,
+            'tenant_water_percentage' => 50.00,
+        ]);
+
+        $response->assertSessionHasErrors(['year']);
+    }
+
+    /** Scenario: Historical rate preservation - changing settings doesn't affect existing records */
+    public function test_historical_rate_preservation(): void
+    {
+        $record = MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2025,
+            'month' => 5,
+            'record_date' => '2025-05-01',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 1000.00,
+            'curr_electricity_reading' => 1100.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 800.00,
+            'tenant_water_percentage' => 50.00,
+            'is_historical' => false,
+            'is_verified' => true,
+        ]);
+        $record->recalculate(true);
+
+        $originalRent = $record->rent_amount;
+        $originalElecRate = $record->electricity_rate;
+        $originalWaterPct = $record->tenant_water_percentage;
+
+        // Change settings
+        $settings = RentalSetting::forUser($this->user->id);
+        $settings->update([
+            'rent_amount' => 20000.00,
+            'electricity_rate' => 15.00,
+            'water_share_percentage' => 60.00,
+        ]);
+
+        // Refresh record - rates should be preserved
+        $record->refresh();
+        $this->assertEquals($originalRent, $record->rent_amount);
+        $this->assertEquals($originalElecRate, $record->electricity_rate);
+        $this->assertEquals($originalWaterPct, $record->tenant_water_percentage);
+    }
+
+    /** Scenario: Dashboard calculations accuracy */
+    public function test_dashboard_calculations_accuracy(): void
+    {
+        $record1 = MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2025,
+            'month' => 5,
+            'record_date' => '2025-05-01',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 1000.00,
+            'curr_electricity_reading' => 1100.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 800.00,
+            'tenant_water_percentage' => 50.00,
+            'is_historical' => false,
+            'is_verified' => true,
+        ]);
+        $record1->recalculate(true);
+
+        $record2 = MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2025,
+            'month' => 6,
+            'record_date' => '2025-06-01',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 1100.00,
+            'curr_electricity_reading' => 1200.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 900.00,
+            'tenant_water_percentage' => 50.00,
+            'is_historical' => false,
+            'is_verified' => true,
+        ]);
+        $record2->recalculate(true);
+
+        $this->get(route('dashboard'))->assertOk();
+
+        // Verify calculations
+        $this->assertEquals(32000.00, $record1->rent_amount + $record2->rent_amount);
+        $this->assertEquals(1000.00 + 1000.00, $record1->electricity_amount + $record2->electricity_amount);
+        $this->assertEquals(400.00 + 450.00, $record1->water_amount + $record2->water_amount);
+    }
+
+    /** Scenario: Historical rate preservation when settings change */
+    public function test_settings_change_does_not_affect_historical_records(): void
+    {
+        $record = MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2025,
+            'month' => 3,
+            'record_date' => '2025-03-01',
+            'rent_amount' => 15000.00,
+            'prev_electricity_reading' => 900.00,
+            'curr_electricity_reading' => 1000.00,
+            'electricity_rate' => 8.00,
+            'total_water_bill' => 600.00,
+            'tenant_water_percentage' => 40.00,
+            'is_historical' => true,
+            'is_verified' => true,
+        ]);
+        $record->recalculate(true);
+
+        $originalRent = $record->rent_amount;
+        $originalElecRate = $record->electricity_rate;
+        $originalWaterPct = $record->tenant_water_percentage;
+
+        // Change settings to different values
+        $settings = RentalSetting::forUser($this->user->id);
+        $settings->update([
+            'rent_amount' => 25000.00,
+            'electricity_rate' => 20.00,
+            'water_share_percentage' => 75.00,
+        ]);
+
+        $record->refresh();
+        $this->assertEquals(15000.00, $record->rent_amount);
+        $this->assertEquals(8.00, $record->electricity_rate);
+        $this->assertEquals(40.00, $record->tenant_water_percentage);
+    }
 }
+

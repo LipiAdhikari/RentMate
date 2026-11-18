@@ -15,10 +15,10 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         $userId = auth()->id();
-        $settings = RentalSetting::where('user_id', $userId)->first();
+        $settings = RentalSetting::forUser($userId)->first();
 
-        $query = MonthlyRecord::with(['payments', 'additionalExpenses'])
-            ->where('user_id', $userId)
+        $query = MonthlyRecord::forUser($userId)
+            ->with(['payments', 'additionalExpenses'])
             ->orderBy('record_date', 'asc');
 
         if ($request->filled('year')) {
@@ -46,7 +46,7 @@ class ReportController extends Controller
         $totalUnits = (float) $records->sum('electricity_units');
 
         // Available years for this user
-        $availableYears = MonthlyRecord::where('user_id', $userId)
+        $availableYears = MonthlyRecord::forUser($userId)
             ->select('year')
             ->distinct()
             ->orderBy('year', 'desc')
@@ -99,8 +99,8 @@ class ReportController extends Controller
     public function exportCsv(Request $request): StreamedResponse
     {
         $userId = auth()->id();
-        $query = MonthlyRecord::with('payments')
-            ->where('user_id', $userId)
+        $query = MonthlyRecord::forUser($userId)
+            ->with('payments')
             ->orderBy('record_date', 'asc');
 
         if ($request->filled('year')) {
@@ -174,10 +174,10 @@ class ReportController extends Controller
     public function exportPdf(Request $request)
     {
         $userId = auth()->id();
-        $settings = RentalSetting::where('user_id', $userId)->first();
+        $settings = RentalSetting::forUser($userId)->first();
 
-        $query = MonthlyRecord::with(['payments', 'additionalExpenses'])
-            ->where('user_id', $userId)
+        $query = MonthlyRecord::forUser($userId)
+            ->with(['payments', 'additionalExpenses'])
             ->orderBy('record_date', 'asc');
 
         if ($request->filled('year')) {

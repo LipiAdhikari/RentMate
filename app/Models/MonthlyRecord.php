@@ -85,6 +85,54 @@ class MonthlyRecord extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Scope: Filter by specific user.
+     */
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope: Filter by year and month.
+     */
+    public function scopeForYearMonth($query, int $year, int $month)
+    {
+        return $query->where('year', $year)->where('month', $month);
+    }
+
+    /**
+     * Scope: Filter by payment status.
+     */
+    public function scopeByStatus($query, string $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope: Filter by historical flag.
+     */
+    public function scopeHistorical($query, bool $isHistorical = true)
+    {
+        return $query->where('is_historical', $isHistorical);
+    }
+
+    /**
+     * Scope: Order chronologically.
+     */
+    public function scopeChronological($query)
+    {
+        return $query->orderBy('year', 'asc')->orderBy('month', 'asc');
+    }
+
+    /**
+     * Scope: Order by record date descending.
+     */
+    public function scopeLatestFirst($query)
+    {
+        return $query->orderBy('record_date', 'desc');
+    }
+
     protected static function booted()
     {
         static::saving(function ($record) {

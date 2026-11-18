@@ -15,10 +15,10 @@ class HistoricalRecordController extends Controller
     public function index(Request $request)
     {
         $userId = auth()->id();
-        $settings = RentalSetting::where('user_id', $userId)->first();
+        $settings = RentalSetting::forUser($userId)->first();
 
-        $query = MonthlyRecord::with('payments')
-            ->where('user_id', $userId)
+        $query = MonthlyRecord::forUser($userId)
+            ->with('payments')
             ->where('is_historical', true)
             ->orderBy('record_date', 'desc');
 
@@ -33,11 +33,11 @@ class HistoricalRecordController extends Controller
         $records = $query->paginate(12)->withQueryString();
 
         // Historical statistics for this user
-        $totalHistoricalExpenses = (float) MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->sum('total_expenses');
-        $totalHistoricalPaid = (float) MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->sum('total_paid');
-        $totalHistoricalBalance = (float) MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->sum('balance');
-        $verifiedCount = MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->where('is_verified', true)->count();
-        $estimatedCount = MonthlyRecord::where('user_id', $userId)->where('is_historical', true)->where('is_verified', false)->count();
+        $totalHistoricalExpenses = (float) MonthlyRecord::forUser($userId)->where('is_historical', true)->sum('total_expenses');
+        $totalHistoricalPaid = (float) MonthlyRecord::forUser($userId)->where('is_historical', true)->sum('total_paid');
+        $totalHistoricalBalance = (float) MonthlyRecord::forUser($userId)->where('is_historical', true)->sum('balance');
+        $verifiedCount = MonthlyRecord::forUser($userId)->where('is_historical', true)->where('is_verified', true)->count();
+        $estimatedCount = MonthlyRecord::forUser($userId)->where('is_historical', true)->where('is_verified', false)->count();
 
         return view('historical.index', compact(
             'records',
@@ -52,7 +52,7 @@ class HistoricalRecordController extends Controller
 
     public function create()
     {
-        $settings = RentalSetting::where('user_id', auth()->id())->first();
+        $settings = RentalSetting::forUser(auth()->id())->first();
 
         // Default to 12 months ago or previous month
         $defaultYear = Carbon::now()->subYear()->year;

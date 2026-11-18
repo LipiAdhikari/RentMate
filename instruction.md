@@ -505,3 +505,27 @@ The RentMate architecture is structured for easy forward extension:
 
 4. **Direct Digital Wallet API Integration**:
     - Integrate eSewa ePay or Khalti Payment Gateway webhooks into `PaymentController` to verify transactions via API.
+
+
+## 6. Codebase Cleanup & Refactoring Summary
+
+### Removed Files
+- `resources/views/welcome.blade.php` - Default Laravel welcome page, not used
+- `tests/Feature/ExampleTest.php` - Default Laravel test, not RentMate-specific
+- `tests/Unit/ExampleTest.php` - Default Laravel test, not RentMate-specific
+- `database/factories/UserFactory.php` - Not invoked by any seeder
+
+### Fixed Issues
+- **Critical Bug**: Added `user_id` to unique constraint on `monthly_records` for multi-tenancy
+- **Critical Bug**: Fixed `add_user_id_to_tables.php` migration for PostgreSQL compatibility
+- **Security**: Removed hardcoded DB credentials from `phpunit.xml`
+- **Security**: Added rate limiting (5 req/min) on auth routes
+- **Security**: Added `EnsureAppKey` middleware
+- **Performance**: Combined 6 SUM queries in DashboardController into 1 aggregate query
+- **Performance**: Limited global payment modal query to 20 records with `user_id` filter
+- **DRY**: Extracted shared JS into `resources/views/components/financial-calculations.blade.php`
+- **Error Handling**: Added error views and exception handling in `bootstrap/app.php`
+
+### Testing
+- 14 feature tests covering all core functionality
+- Test coverage: CRUD, calculations, validation, multi-tenancy, rate preservation, dashboard analytics

@@ -10,7 +10,7 @@ class SettingController extends Controller
 {
     public function index()
     {
-        $settings = RentalSetting::where('user_id', Auth::id())->first();
+        $settings = RentalSetting::forUser(Auth::id())->first();
 
         return view('settings.index', compact('settings'));
     }
@@ -31,7 +31,7 @@ class SettingController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $settings = RentalSetting::where('user_id', Auth::id())->first();
+        $settings = RentalSetting::forUser(Auth::id())->first();
         $settings->update($validated);
 
         return redirect()->route('settings.index')

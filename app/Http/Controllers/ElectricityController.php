@@ -12,9 +12,9 @@ class ElectricityController extends Controller
     public function index()
     {
         $userId = auth()->id();
-        $settings = RentalSetting::where('user_id', $userId)->first();
+        $settings = RentalSetting::forUser($userId)->first();
 
-        $records = MonthlyRecord::where('user_id', $userId)->orderBy('record_date', 'desc')->get();
+        $records = MonthlyRecord::forUser($userId)->orderBy('record_date', 'desc')->get();
 
         $totalUnits = (float) $records->sum('electricity_units');
         $totalCost = (float) $records->sum('electricity_amount');
@@ -24,7 +24,7 @@ class ElectricityController extends Controller
         $latestRecord = $records->first();
 
         // Chart data chronologically
-        $chartRecords = MonthlyRecord::where('user_id', $userId)->orderBy('record_date', 'asc')->get();
+        $chartRecords = MonthlyRecord::forUser($userId)->orderBy('record_date', 'asc')->get();
         $chartLabels = [];
         $chartUnits = [];
         $chartCosts = [];
@@ -65,7 +65,6 @@ class ElectricityController extends Controller
         ]);
 
         $monthlyRecord->update([
-            'user_id' => auth()->id(),
             'prev_electricity_reading' => $validated['prev_electricity_reading'],
             'curr_electricity_reading' => $validated['curr_electricity_reading'],
             'electricity_rate' => $validated['electricity_rate'],

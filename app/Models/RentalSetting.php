@@ -55,8 +55,36 @@ class RentalSetting extends Model
         );
     }
 
+    /**
+     * Get or create active settings singleton instance for a specific user.
+     */
+    public static function getActiveForUser(int $userId): self
+    {
+        return self::firstOrCreate(
+            ['user_id' => $userId],
+            [
+                'rent_amount' => 16000.00,
+                'electricity_rate' => 10.00,
+                'water_share_percentage' => 50.00,
+                'currency' => 'NPR',
+                'rental_start_date' => '2024-11-01',
+                'owner_name' => 'House Owner',
+                'property_address' => 'Kathmandu, Nepal',
+                'payment_reminder_days' => 5,
+            ]
+        );
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Scope: Filter by specific user.
+     */
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
     }
 }

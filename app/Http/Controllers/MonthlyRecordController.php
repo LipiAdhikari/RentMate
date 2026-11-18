@@ -17,8 +17,8 @@ class MonthlyRecordController extends Controller
     {
         $userId = auth()->id();
 
-        $query = MonthlyRecord::with(['payments', 'additionalExpenses'])
-            ->where('user_id', $userId)
+        $query = MonthlyRecord::forUser($userId)
+            ->with(['payments', 'additionalExpenses'])
             ->orderBy('record_date', 'desc');
 
         if ($request->filled('year')) {
@@ -34,15 +34,15 @@ class MonthlyRecordController extends Controller
         }
 
         $records = $query->paginate(12)->withQueryString();
-        $settings = RentalSetting::where('user_id', $userId)->first();
+        $settings = RentalSetting::forUser($userId)->first();
 
-        $availableYears = MonthlyRecord::where('user_id', $userId)
+        $availableYears = MonthlyRecord::forUser($userId)
             ->select('year')
             ->distinct()
             ->orderBy('year', 'desc')
             ->pluck('year');
 
-        $availableBsYears = MonthlyRecord::where('user_id', $userId)
+        $availableBsYears = MonthlyRecord::forUser($userId)
             ->whereNotNull('bs_year')
             ->select('bs_year')
             ->distinct()
@@ -54,10 +54,9 @@ class MonthlyRecordController extends Controller
 
     public function create()
     {
-        $settings = RentalSetting::where('user_id', auth()->id())->first();
-        $latestRecord = MonthlyRecord::where('user_id', auth()->id())->orderBy('record_date', 'desc')->first();
+        $settings = RentalSetting::forUser(auth()->id())->first();
+        $latestRecord = MonthlyRecord::forUser(auth()->id())->orderBy('record_date', 'desc')->first();
 
-        // Default to next month based on latest record, or current month
         if ($latestRecord) {
             $nextDate = Carbon::createFromDate($latestRecord->year, $latestRecord->month, 1)->addMonth();
             $defaultYear = $nextDate->year;
@@ -121,7 +120,6 @@ class MonthlyRecordController extends Controller
             $recordDate = Carbon::createFromDate($validated['year'], $validated['month'], 1)->toDateString();
             $dueDate = Carbon::createFromDate($validated['year'], $validated['month'], 1)->endOfMonth()->toDateString();
 
-            // Nepali calendar mapping
             $bsYear = $validated['bs_year'] ?? null;
             $bsMonth = $validated['bs_month'] ?? null;
             if (!$bsYear || !$bsMonth) {
@@ -176,26 +174,24 @@ class MonthlyRecordController extends Controller
 
     public function show(MonthlyRecord $monthlyRecord)
     {
-        // Ensure user owns this record
         if ($monthlyRecord->user_id !== auth()->id()) {
             abort(403, 'You do not own this record.');
         }
 
         $monthlyRecord->load(['payments', 'additionalExpenses']);
-        $settings = RentalSetting::where('user_id', auth()->id())->first();
+        $settings = RentalSetting::forUser(auth()->id())->first();
 
         return view('monthly-records.show', compact('monthlyRecord', 'settings'));
     }
 
     public function edit(MonthlyRecord $monthlyRecord)
     {
-        // Ensure user owns this record
         if ($monthlyRecord->user_id !== auth()->id()) {
             abort(403, 'You do not own this record.');
         }
 
         $monthlyRecord->load('additionalExpenses');
-        $settings = RentalSetting::where('user_id', auth()->id())->first();
+        $settings = RentalSetting::forUser(auth()->id())->first();
         $nepaliMonths = NepaliCalendar::MONTHS;
 
         return view('monthly-records.edit', compact('monthlyRecord', 'settings', 'nepaliMonths'));
@@ -203,7 +199,6 @@ class MonthlyRecordController extends Controller
 
     public function update(Request $request, MonthlyRecord $monthlyRecord)
     {
-        // Ensure user owns this record
         if ($monthlyRecord->user_id !== auth()->id()) {
             abort(403, 'You do not own this record.');
         }
@@ -268,7 +263,6 @@ class MonthlyRecordController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            // Replace additional expenses
             $monthlyRecord->additionalExpenses()->delete();
             if ($request->has('expenses') && is_array($request->expenses)) {
                 foreach ($request->expenses as $expense) {
@@ -292,7 +286,6 @@ class MonthlyRecordController extends Controller
 
     public function destroy(MonthlyRecord $monthlyRecord)
     {
-        // Ensure user owns this record
         if ($monthlyRecord->user_id !== auth()->id()) {
             abort(403, 'You do not own this record.');
         }

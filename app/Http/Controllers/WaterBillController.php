@@ -12,9 +12,9 @@ class WaterBillController extends Controller
     public function index()
     {
         $userId = auth()->id();
-        $settings = RentalSetting::where('user_id', $userId)->first();
+        $settings = RentalSetting::forUser($userId)->first();
 
-        $records = MonthlyRecord::where('user_id', $userId)->orderBy('record_date', 'desc')->get();
+        $records = MonthlyRecord::forUser($userId)->orderBy('record_date', 'desc')->get();
 
         $totalWaterBills = (float) $records->sum('total_water_bill');
         $tenantTotalShare = (float) $records->sum('water_amount');
@@ -22,7 +22,7 @@ class WaterBillController extends Controller
         $avgTenantShare = $records->count() > 0 ? round($tenantTotalShare / $records->count(), 2) : 0;
 
         // Chart data
-        $chartRecords = MonthlyRecord::where('user_id', $userId)->orderBy('record_date', 'asc')->get();
+        $chartRecords = MonthlyRecord::forUser($userId)->orderBy('record_date', 'asc')->get();
         $chartLabels = [];
         $chartTenantShares = [];
         $chartOwnerShares = [];
@@ -59,7 +59,6 @@ class WaterBillController extends Controller
         ]);
 
         $monthlyRecord->update([
-            'user_id' => auth()->id(),
             'total_water_bill' => $validated['total_water_bill'],
             'tenant_water_percentage' => $validated['tenant_water_percentage'],
         ]);

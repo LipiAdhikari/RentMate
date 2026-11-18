@@ -14,27 +14,26 @@ class DashboardController extends Controller
     public function index()
     {
         $userId = auth()->id();
-        $settings = RentalSetting::where('user_id', $userId)->first();
+        $settings = RentalSetting::forUser($userId)->first();
         $now = Carbon::now();
         $currentYear = $now->year;
         $currentMonth = $now->month;
         $todayBs = NepaliCalendar::today();
 
         // Current month record for this user
-        $currentMonthRecord = MonthlyRecord::with(['payments', 'additionalExpenses'])
-            ->where('user_id', $userId)
-            ->where('year', $currentYear)
-            ->where('month', $currentMonth)
+        $currentMonthRecord = MonthlyRecord::forUser($userId)
+            ->with(['payments', 'additionalExpenses'])
+            ->forYearMonth($currentYear, $currentMonth)
             ->first();
 
         // If current month record doesn't exist, get the most recent recorded month for this user
-        $activeDisplayRecord = $currentMonthRecord ?? MonthlyRecord::with(['payments', 'additionalExpenses'])
-            ->where('user_id', $userId)
+        $activeDisplayRecord = $currentMonthRecord ?? MonthlyRecord::forUser($userId)
+            ->with(['payments', 'additionalExpenses'])
             ->orderBy('record_date', 'desc')
             ->first();
 
         // All-time aggregate totals dynamically calculated from DB for this user
-        $monthlyAggregates = MonthlyRecord::where('user_id', $userId)
+        $monthlyAggregates = MonthlyRecord::forUser($userId)
             ->selectRaw('
                 SUM(total_expenses) as total_expenses,
                 SUM(balance) as total_balance,
@@ -49,26 +48,29 @@ class DashboardController extends Controller
         $allTimeRent = (float) ($monthlyAggregates->total_rent ?? 0);
         $allTimeElectricity = (float) ($monthlyAggregates->total_electricity ?? 0);
         $allTimeWater = (float) ($monthlyAggregates->total_water ?? 0);
-        $allTimePaid = (float) Payment::where('user_id', $userId)->sum('amount');
+        $allTimePaid = (float) Payment::forUser($userId)->sum('amount');
 
         // Unpaid or partially paid months for this user
-        $unpaidRecords = MonthlyRecord::with('payments')
-            ->where('user_id', $userId)
-            ->whereIn('status', ['unpaid', 'partially_paid'])
+        $unpaidRecords = MonthlyRecord::forUser($userId)
+            ->with('payments')
+            ->byStatus('unpaid')
+            ->orWhere(function ($query) {
+                $query->byStatus('partially_paid');
+            })
             ->orderBy('record_date', 'asc')
             ->get();
 
         // Recent payment transactions for this user
-        $recentPayments = Payment::with('monthlyRecord')
-            ->where('user_id', $userId)
+        $recentPayments = Payment::forUser($userId)
+            ->with('monthlyRecord')
             ->orderBy('payment_date', 'desc')
             ->orderBy('id', 'desc')
             ->limit(6)
             ->get();
 
         // Monthly trends for Chart.js for this user
-        $historyRecords = MonthlyRecord::where('user_id', $userId)
-            ->orderBy('record_date', 'asc')
+        $historyRecords = MonthlyRecord::forUser($userId)
+            ->chronological()
             ->limit(12)
             ->get();
 

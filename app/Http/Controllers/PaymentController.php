@@ -10,21 +10,22 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PaymentController extends Controller
 {
     public function index(Request $request)
     {
         $userId = auth()->id();
-        $settings = RentalSetting::where('user_id', $userId)->first();
+        $settings = RentalSetting::forUser($userId)->first();
 
-        $query = Payment::with('monthlyRecord')
-            ->where('user_id', $userId)
+        $query = Payment::forUser($userId)
+            ->with('monthlyRecord')
             ->orderBy('payment_date', 'desc')
             ->orderBy('id', 'desc');
 
         if ($request->filled('method')) {
-            $query->where('payment_method', $request->method);
+            $query->byMethod($request->method);
         }
 
         if ($request->filled('monthly_record_id')) {
@@ -34,15 +35,15 @@ class PaymentController extends Controller
         $payments = $query->paginate(15)->withQueryString();
 
         // Summary metrics for this user
-        $totalPaid = (float) Payment::where('user_id', $userId)->sum('amount');
-        $esewaTotal = (float) Payment::where('user_id', $userId)->where('payment_method', 'eSewa')->sum('amount');
-        $khaltiTotal = (float) Payment::where('user_id', $userId)->where('payment_method', 'Khalti')->sum('amount');
-        $bankTotal = (float) Payment::where('user_id', $userId)->where('payment_method', 'Bank Transfer')->sum('amount');
-        $cashTotal = (float) Payment::where('user_id', $userId)->where('payment_method', 'Cash')->sum('amount');
+        $totalPaid = (float) Payment::forUser($userId)->sum('amount');
+        $esewaTotal = (float) Payment::forUser($userId)->byMethod('eSewa')->sum('amount');
+        $khaltiTotal = (float) Payment::forUser($userId)->byMethod('Khalti')->sum('amount');
+        $bankTotal = (float) Payment::forUser($userId)->byMethod('Bank Transfer')->sum('amount');
+        $cashTotal = (float) Payment::forUser($userId)->byMethod('Cash')->sum('amount');
 
         // All monthly records for this user for the "Add Payment" dropdown
-        $monthlyRecords = MonthlyRecord::where('user_id', $userId)
-            ->orderBy('record_date', 'desc')
+        $monthlyRecords = MonthlyRecord::forUser($userId)
+            ->latestFirst()
             ->get();
 
         return view('payments.index', compact(
@@ -70,18 +71,18 @@ class PaymentController extends Controller
 
         // Auto-allocate to oldest unpaid month if requested or empty
         if (empty($validated['monthly_record_id']) || $validated['monthly_record_id'] === 'auto') {
-            $targetRecord = MonthlyRecord::where('user_id', auth()->id())
+            $targetRecord = MonthlyRecord::forUser(auth()->id())
                 ->whereIn('status', ['unpaid', 'partially_paid'])
                 ->orderBy('record_date', 'asc')
                 ->first();
 
             if (!$targetRecord) {
-                $targetRecord = MonthlyRecord::where('user_id', auth()->id())
-                    ->orderBy('record_date', 'desc')
+                $targetRecord = MonthlyRecord::forUser(auth()->id())
+                    ->latestFirst()
                     ->firstOrFail();
             }
         } else {
-            $targetRecord = MonthlyRecord::where('user_id', auth()->id())
+            $targetRecord = MonthlyRecord::forUser(auth()->id())
                 ->findOrFail($validated['monthly_record_id']);
         }
 
