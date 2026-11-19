@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-lg font-bold text-slate-800">New Rental Month</h2>
-            <p class="text-xs text-slate-500">Supports both Nepali Bikram Sambat (BS) & English (AD) calendar periods.</p>
+            <p class="text-xs text-slate-500">Select the rental period and enter utility readings.</p>
         </div>
         <a href="{{ route('monthly-records.index') }}" class="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
             Back to Records
@@ -19,20 +19,19 @@
     <form action="{{ route('monthly-records.store') }}" method="POST" id="monthly-record-form" class="space-y-6">
         @csrf
 
-        <!-- 1. Month & Rent Card with Dual BS / AD -->
+        <!-- 1. Month & Rent Card -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                     <i data-lucide="calendar" class="w-4 h-4 text-teal-600"></i>
-                    <span>1. Rental Month Period (Nepali BS & English AD)</span>
+                    <span>1. Rental Month Period</span>
                 </h3>
-                <span class="text-xs text-teal-600 font-semibold">🇳🇵 Dual Calendar Enabled</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Nepali Month -->
+                <!-- Month -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nepali Month (महिना) *</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Month *</label>
                     <select name="bs_month" id="bs_month" onchange="syncFromNepaliMonth()" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border font-medium">
                         @foreach($nepaliMonths as $num => $info)
                             <option value="{{ $num }}" {{ old('bs_month', $defaultBsMonth) == $num ? 'selected' : '' }}>
@@ -42,21 +41,21 @@
                     </select>
                 </div>
 
-                <!-- Nepali Year -->
+                <!-- Year -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nepali Year (वि.सं.) *</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Year *</label>
                     <select name="bs_year" id="bs_year" onchange="syncFromNepaliMonth()" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border font-medium">
                         @for($by = 2085; $by >= 2080; $by--)
                             <option value="{{ $by }}" {{ old('bs_year', $defaultBsYear) == $by ? 'selected' : '' }}>
-                                {{ $by }} BS ({{ \App\Services\NepaliCalendar::toNepaliNumerals($by) }})
+                                {{ $by }} ({{ \App\Services\NepaliCalendar::toNepaliNumerals($by) }})
                             </option>
                         @endfor
                     </select>
                 </div>
 
-                <!-- AD Month -->
+                <!-- Calendar Month -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">English Month (AD) *</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Calendar Month *</label>
                     <select name="month" id="month" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
                         @foreach([
                             1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
@@ -70,9 +69,9 @@
                     </select>
                 </div>
 
-                <!-- AD Year -->
+                <!-- Calendar Year -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">English Year (AD) *</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Calendar Year *</label>
                     <select name="year" id="year" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
                         @for($y = date('Y') + 1; $y >= 2024; $y--)
                             <option value="{{ $y }}" {{ old('year', $defaultYear) == $y ? 'selected' : '' }}>{{ $y }}</option>

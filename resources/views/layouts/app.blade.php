@@ -147,8 +147,9 @@
             <!-- Bottom Information Card -->
             <div class="p-4 border-t border-slate-800/80 bg-navy-950/30">
                 <div class="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3 text-xs">
-                    <div class="text-[11px] text-teal-400 font-bold mb-1 flex items-center gap-1">
-                        <span>🇳🇵 Bikram Sambat Active</span>
+                    <div class="text-[11px] text-teal-400 font-semibold mb-1 flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                        <span>Today</span>
                     </div>
                     <div class="text-[11px] text-slate-300 font-medium">
                         {{ \App\Services\NepaliCalendar::today()['formatted_np'] }}
@@ -174,9 +175,9 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <!-- Live Dual Calendar Pill -->
-                    <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 border border-slate-200">
-                        <span class="text-rose-600 font-bold">🇳🇵</span>
+                    <!-- Current Date Pill -->
+                    <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-medium text-slate-700 border border-slate-200">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-500"></i>
                         <span>{{ \App\Services\NepaliCalendar::today()['formatted'] }}</span>
                         <span class="text-slate-400">({{ date('M d') }})</span>
                     </div>
@@ -255,7 +256,7 @@
                     </div>
                     <div>
                         <h3 class="font-bold text-slate-800 text-sm">Record Rental Payment</h3>
-                        <p class="text-[11px] text-slate-500">Auto-detects paid rent & late days (e.g. Jan rent paid Feb 15)</p>
+                        <p class="text-[11px] text-slate-500">Record payment and update rent balance</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeGlobalPaymentModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Close">
@@ -274,74 +275,19 @@
                             </option>
                         @endforeach
                     </select>
-                    <span class="text-[10px] text-teal-600 mt-1 block">
-                        Even if paid late in another month, selecting that month marks that 1 month rent has been cleared.
+                    <span class="text-[10px] text-slate-500 mt-1 block">
+                        Payment will be credited to this month's rent.
                     </span>
                 </div>
 
-                @php
-                    $todayBs = \App\Services\NepaliCalendar::today();
-                @endphp
-                <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Amount (NPR) *</label>
                         <input type="number" step="0.01" min="1" name="amount" required placeholder="16000.00" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
                     </div>
-
                     <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-slate-700">Payment Date (Bikram Sambat / वि.सं.) *</label>
-                            <span class="text-[10px] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/50">नेपाली क्यालेन्डर</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Year (वर्ष)</label>
-                                <select name="bs_year" id="global_bs_year" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
-                                    @for($y = 2080; $y <= 2086; $y++)
-                                        <option value="{{ $y }}" {{ ($todayBs['year'] ?? 2083) == $y ? 'selected' : '' }}>{{ $y }} BS</option>
-                                    @endfor
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Month (महिना)</label>
-                                <select name="bs_month" id="global_bs_month" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
-                                    <option value="1" {{ ($todayBs['month'] ?? 8) == 1 ? 'selected' : '' }}>01 Baisakh (बैशाख)</option>
-                                    <option value="2" {{ ($todayBs['month'] ?? 8) == 2 ? 'selected' : '' }}>02 Jestha (जेठ)</option>
-                                    <option value="3" {{ ($todayBs['month'] ?? 8) == 3 ? 'selected' : '' }}>03 Ashadh (असार)</option>
-                                    <option value="4" {{ ($todayBs['month'] ?? 8) == 4 ? 'selected' : '' }}>04 Shrawan (साउन)</option>
-                                    <option value="5" {{ ($todayBs['month'] ?? 8) == 5 ? 'selected' : '' }}>05 Bhadra (भदौ)</option>
-                                    <option value="6" {{ ($todayBs['month'] ?? 8) == 6 ? 'selected' : '' }}>06 Ashwin (असोज)</option>
-                                    <option value="7" {{ ($todayBs['month'] ?? 8) == 7 ? 'selected' : '' }}>07 Kartik (कार्तिक)</option>
-                                    <option value="8" {{ ($todayBs['month'] ?? 8) == 8 ? 'selected' : '' }}>08 Mangsir (मंसिर)</option>
-                                    <option value="9" {{ ($todayBs['month'] ?? 8) == 9 ? 'selected' : '' }}>09 Poush (पुष)</option>
-                                    <option value="10" {{ ($todayBs['month'] ?? 8) == 10 ? 'selected' : '' }}>10 Magh (माघ)</option>
-                                    <option value="11" {{ ($todayBs['month'] ?? 8) == 11 ? 'selected' : '' }}>11 Falgun (फागुन)</option>
-                                    <option value="12" {{ ($todayBs['month'] ?? 8) == 12 ? 'selected' : '' }}>12 Chaitra (चैत)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Day (गते)</label>
-                                <select name="bs_day" id="global_bs_day" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
-                                    @for($d = 1; $d <= 32; $d++)
-                                        <option value="{{ $d }}" {{ ($todayBs['day'] ?? 3) == $d ? 'selected' : '' }}>Gate {{ sprintf('%02d', $d) }}</option>
-                                    @endfor
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Hidden synced AD payment_date -->
-                        <input type="hidden" name="payment_date" id="global_payment_date" value="{{ date('Y-m-d') }}">
-
-                        <!-- Dynamic Sync Badge -->
-                        <div class="mt-2 flex items-center justify-between px-3 py-1.5 rounded-lg bg-teal-50/90 border border-teal-200/60 text-xs text-teal-900">
-                            <span class="flex items-center gap-1.5 font-medium">
-                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-teal-600 shrink-0"></i>
-                                <span>वि.सं.: <strong id="global_bs_label_preview">{{ $todayBs['formatted'] }} ({{ $todayBs['month_np'] }})</strong></span>
-                            </span>
-                            <span class="text-[11px] text-slate-500 font-mono">
-                                Converted AD: <span id="global_ad_label_preview">{{ date('Y-m-d') }}</span>
-                            </span>
-                        </div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date *</label>
+                        <input type="date" name="payment_date" required value="{{ date('Y-m-d') }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
                     </div>
                 </div>
 

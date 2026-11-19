@@ -9,8 +9,8 @@
     <!-- Nepali Calendar Live Banner -->
     <div class="bg-gradient-to-r from-slate-900 to-navy-900 text-white rounded-2xl p-5 border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold text-lg shrink-0">
-                🇳🇵
+            <div class="w-11 h-11 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center shrink-0">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
             </div>
             <div>
                 <div class="flex items-center gap-2">
@@ -19,7 +19,7 @@
                 </div>
                 <h3 class="text-lg font-bold text-white mt-0.5">
                     {{ $todayBs['formatted'] }} ({{ $todayBs['formatted_np'] }})
-                    <span class="text-xs text-slate-400 font-normal ml-1">/ {{ date('F d, Y') }} AD</span>
+                    <span class="text-xs text-slate-400 font-normal ml-1">/ {{ date('F d, Y') }}</span>
                 </h3>
             </div>
         </div>
@@ -225,7 +225,7 @@
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h3 class="font-bold text-slate-800 text-sm">Monthly Rental Expense Overview</h3>
-                    <p class="text-xs text-slate-500">Nepali (BS) & English (AD) Cost trends</p>
+                    <p class="text-xs text-slate-500">Monthly expense trends</p>
                 </div>
                 <span class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg">NPR</span>
             </div>

@@ -216,66 +216,14 @@
                 @csrf
                 @method('PUT')
 
-                <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Amount (NPR) *</label>
                         <input type="number" step="0.01" min="0.01" name="amount" id="edit_payment_amount" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
                     </div>
-
                     <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-slate-700">Payment Date (Bikram Sambat / वि.सं.) *</label>
-                            <span class="text-[10px] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/50">नेपाली क्यालेन्डर</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Year (वर्ष)</label>
-                                <select name="bs_year" id="edit_bs_year" onchange="syncEditBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
-                                    @for($y = 2080; $y <= 2086; $y++)
-                                        <option value="{{ $y }}">{{ $y }} BS</option>
-                                    @endfor
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Month (महिना)</label>
-                                <select name="bs_month" id="edit_bs_month" onchange="syncEditBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
-                                    <option value="1">01 Baisakh (बैशाख)</option>
-                                    <option value="2">02 Jestha (जेठ)</option>
-                                    <option value="3">03 Ashadh (असार)</option>
-                                    <option value="4">04 Shrawan (साउन)</option>
-                                    <option value="5">05 Bhadra (भदौ)</option>
-                                    <option value="6">06 Ashwin (असोज)</option>
-                                    <option value="7">07 Kartik (कार्तिक)</option>
-                                    <option value="8">08 Mangsir (मंसिर)</option>
-                                    <option value="9">09 Poush (पुष)</option>
-                                    <option value="10">10 Magh (माघ)</option>
-                                    <option value="11">11 Falgun (फागुन)</option>
-                                    <option value="12">12 Chaitra (चैत)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Day (गते)</label>
-                                <select name="bs_day" id="edit_bs_day" onchange="syncEditBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
-                                    @for($d = 1; $d <= 32; $d++)
-                                        <option value="{{ $d }}">Gate {{ sprintf('%02d', $d) }}</option>
-                                    @endfor
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Hidden synced AD payment_date -->
-                        <input type="hidden" name="payment_date" id="edit_payment_date">
-
-                        <!-- Dynamic Sync Badge -->
-                        <div class="mt-2 flex items-center justify-between px-3 py-1.5 rounded-lg bg-teal-50/90 border border-teal-200/60 text-xs text-teal-900">
-                            <span class="flex items-center gap-1.5 font-medium">
-                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-teal-600 shrink-0"></i>
-                                <span>वि.सं.: <strong id="edit_bs_label_preview">--</strong></span>
-                            </span>
-                            <span class="text-[11px] text-slate-500 font-mono">
-                                Converted AD: <span id="edit_ad_label_preview">--</span>
-                            </span>
-                        </div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date *</label>
+                        <input type="date" name="payment_date" id="edit_payment_date" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
                     </div>
                 </div>
 
@@ -327,46 +275,11 @@
         document.getElementById('edit_payment_ref').value = ref || '';
         document.getElementById('edit_payment_notes').value = notes || '';
 
-        if (date && typeof nepaliAdToBs === 'function') {
-            const bs = nepaliAdToBs(date);
-            const yEl = document.getElementById('edit_bs_year');
-            const mEl = document.getElementById('edit_bs_month');
-            const dEl = document.getElementById('edit_bs_day');
-            if (yEl) yEl.value = bs.year;
-            if (mEl) mEl.value = bs.month;
-            if (dEl) dEl.value = bs.day;
-            syncEditBsDate();
-        }
-
         modal.classList.remove('hidden');
         if (window.lucide) window.lucide.createIcons();
 
         if (!window.location.hash.includes('edit-payment')) {
             history.pushState({ modal: 'edit-payment' }, '', '#edit-payment');
-        }
-    }
-
-    function syncEditBsDate() {
-        const yEl = document.getElementById('edit_bs_year');
-        const mEl = document.getElementById('edit_bs_month');
-        const dEl = document.getElementById('edit_bs_day');
-        if (!yEl || !mEl || !dEl) return;
-
-        const y = parseInt(yEl.value);
-        const m = parseInt(mEl.value);
-        const d = parseInt(dEl.value);
-
-        if (typeof nepaliBsToAd === 'function') {
-            const adDate = nepaliBsToAd(y, m, d);
-            document.getElementById('edit_payment_date').value = adDate;
-
-            const mInfo = (typeof nepaliMonthInfo !== 'undefined' && nepaliMonthInfo[m]) ? nepaliMonthInfo[m] : { en: 'Month', np: '' };
-            const bsLabel = `${mInfo.en} ${String(d).padStart(2, '0')}, ${y} (${mInfo.np})`;
-
-            const bsPreview = document.getElementById('edit_bs_label_preview');
-            const adPreview = document.getElementById('edit_ad_label_preview');
-            if (bsPreview) bsPreview.innerText = bsLabel;
-            if (adPreview) adPreview.innerText = adDate;
         }
     }
 
