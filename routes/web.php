@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocsController;
 use App\Http\Controllers\ElectricityController;
 use App\Http\Controllers\HistoricalRecordController;
 use App\Http\Controllers\LandingController;
@@ -24,6 +25,9 @@ Route::middleware('throttle:5,1')->group(function () {
 
 // Landing page (public)
 Route::get('/', [LandingController::class, 'index'])->name('landing');
+
+// Documentation (public)
+Route::get('/docs', [DocsController::class, 'index'])->name('docs.index');
 
 // Authenticated routes (require login)
 Route::middleware('auth')->group(function () {
