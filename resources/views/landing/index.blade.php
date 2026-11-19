@@ -52,16 +52,15 @@
                     <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-teal-400 flex items-center justify-center text-white shadow-sm shadow-teal-500/30">
                         <i data-lucide="home" class="w-5 h-5"></i>
                     </div>
-                    <span class="text-lg font-bold tracking-tight text-slate-900">Rent<span class="text-teal-600">Mate</span></span>
+                    <span class="text-xl font-bold tracking-tight">Rent<span class="text-teal-600">Mate</span></span>
                 </div>
                 <div class="hidden md:flex items-center gap-6">
                     <a href="#features" class="text-sm font-medium text-slate-600 hover:text-teal-600 transition">Features</a>
-                    <a href="#how-it-works" class="text-xs font-medium text-slate-600 hover:text-teal-600 transition">How it works</a>
+                    <a href="#how-it-works" class="text-sm font-medium text-slate-600 hover:text-teal-600 transition">How it works</a>
                     <a href="#pricing" class="text-sm font-medium text-slate-600 hover:text-teal-600 transition">Pricing</a>
-                    <a href="{{ route('docs.index') }}" class="text-xs font-medium text-slate-600 hover:text-teal-600 transition">Docs</a>
                 </div>
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('login') }}" class="text-xs font-medium text-slate-600 hover:text-teal-600 transition">Sign in</a>
+                    <a href="{{ route('login') }}" class="text-sm font-medium text-slate-600 hover:text-teal-600 transition">Sign in</a>
                     <a href="{{ route('register') }}" class="px-4 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm shadow-teal-900/20 transition-all">Get Started</a>
                 </div>
             </div>
@@ -108,9 +107,9 @@
                             <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                                 <div class="flex items-center gap-3 mb-2">
                                     <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center">
-                                        <i data-lucide="home" class="w-5 h-5"></i>
+                                        <i data-lucide="trending-up" class="w-5 h-5"></i>
                                     </div>
-                                    <span class="text-sm font-bold text-slate-800">Monthly Rent Tracking</div>
+                                    <span class="text-sm font-bold text-slate-800">12+ Months tracked</span>
                                 </div>
                                 <p class="text-xs text-slate-500">Complete rental history at a glance</p>
                             </div>
@@ -119,7 +118,7 @@
                                     <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
                                         <i data-lucide="zap" class="w-5 h-5"></i>
                                     </div>
-                                    <span class="text-sm font-bold text-slate-800">Electricity Tracker</span>
+                                    <span class="text-sm font-bold text-slate-800">Auto electricity calc</span>
                                 </div>
                                 <p class="text-xs text-slate-500">Meter readings → units → cost</p>
                             </div>
@@ -128,14 +127,14 @@
                                     <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
                                         <i data-lucide="droplets" class="w-5 h-5"></i>
                                     </div>
-                                    <span class="text-sm font-bold text-slate-800">50/50 Water Split</span>
+                                    <span class="text-sm font-bold text-slate-800">50/50 Water split</span>
                                 </div>
                                 <p class="text-xs text-slate-500">Tenant & owner shares tracked</p>
                             </div>
                         </div>
                         <div class="lg:w-1/2">
                             <div class="relative">
-                                <div class="absolute -inset-0.5 bg-gradient-to-r from-teal-400 to-teal-600 rounded-3xl blur opacity-30"></div>
+                                <div class="absolute -inset-0.5 bg-gradient-to-r from-teal-400 to-teal-600 rounded-2xl blur opacity-30"></div>
                                 <div class="bg-slate-900 rounded-2xl p-6 shadow-2xl overflow-hidden">
                                     <div class="flex items-center justify-between mb-4">
                                         <span class="flex items-center gap-1 text-teal-400 text-xs font-bold">
@@ -163,7 +162,7 @@
                                         <div class="w-full bg-slate-800 rounded-full h-1.5">
                                             <div class="bg-teal-500 h-1.5 rounded-full" style="width: 65%"></div>
                                         </div>
-                                        <div class="flex justify-between text-xs mt-1">
+                                        <div class="flex justify-between text-xs mb-4 mt-1">
                                             <span class="text-slate-400">Water (50%)</span>
                                             <span class="text-slate-200">NPR 430.00</span>
                                         </div>
@@ -189,14 +188,16 @@
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
                 <div class="p-8 rounded-2xl border border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50/50 transition-all group">
-                    <div class="w-10 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center mb-6 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                    <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center mb-6 group-hover:bg-teal-600 group-hover:text-white transition-colors">
                         <i data-lucide="calendar-days" class="w-6 h-6"></i>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 mb-3">Monthly Records</h3>
                     <p class="text-slate-600 leading-relaxed">Create, view, edit, and delete monthly rental records. Unique constraints prevent duplicate entries for the same month.</p>
                 </div>
 
+                <!-- Feature 2 -->
                 <div class="p-8 rounded-2xl border border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50/50 transition-all group">
                     <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-6 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                         <i data-lucide="zap" class="w-6 h-6"></i>
@@ -205,6 +206,7 @@
                     <p class="text-slate-600 leading-relaxed">Enter meter readings — units consumed and cost are calculated automatically. Current reading can't be lower than previous.</p>
                 </div>
 
+                <!-- Feature 3 -->
                 <div class="p-8 rounded-2xl border border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50/50 transition-all group">
                     <div class="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center mb-6 group-hover:bg-sky-600 group-hover:text-white transition-colors">
                         <i data-lucide="droplets" class="w-6 h-6"></i>
@@ -213,6 +215,7 @@
                     <p class="text-slate-600 leading-relaxed">Configurable tenant/owner split (default 50/50). Tenant share and owner share are tracked automatically.</p>
                 </div>
 
+                <!-- Feature 4 -->
                 <div class="p-8 rounded-2xl border border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50/50 transition-all group">
                     <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                         <i data-lucide="wallet" class="w-6 h-6"></i>
@@ -221,6 +224,7 @@
                     <p class="text-slate-600 leading-relaxed">Pay rent in multiple installments (Cash, eSewa, Khalti, Bank Transfer). Status auto-updates: Unpaid → Partially → Paid → Overpaid.</p>
                 </div>
 
+                <!-- Feature 5 -->
                 <div class="p-8 rounded-2xl border border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50/50 transition-all group">
                     <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
                         <i data-lucide="history" class="w-6 h-6"></i>
@@ -229,18 +233,19 @@
                     <p class="text-slate-600 leading-relaxed">Log older months from previous tenancy. Mark records as Verified or Estimated — missing payments are never invented.</p>
                 </div>
 
+                <!-- Feature 6 -->
                 <div class="p-8 rounded-2xl border border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50/50 transition-all group">
                     <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                         <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-3">Reports & Exports</h3>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Reports & Exports</h3>
                     <p class="text-slate-600 leading-relaxed">Filter by year or date range. Export to CSV/Excel with UTF-8 BOM or download printable PDF statements.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- How It Works Section -->
+    <!-- How It Works -->
     <section id="how-it-works" class="py-24 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
@@ -255,8 +260,8 @@
                         <span class="text-lg font-bold">1</span>
                     </div>
                     <div class="text-center">
-                        <h3 class="text-xl font-bold text-slate-900 mb-3">Create Your Account</h3>
-                        <p class="text-slate-600 leading-relaxed">Sign up with your email and set up your rental settings — rent amount, electricity rate, water split percentage.</p>
+                        <h3 class="text-xl font-bold text-slate-900 mb-3">Create your account</h3>
+                        <p class="text-slate-600 leading-relaxed">Sign up with your email and set up your rental settings — rent amount, electricity rate, water split.</p>
                     </div>
                 </div>
                 <!-- Step 2 -->
@@ -265,36 +270,18 @@
                         <span class="text-lg font-bold">2</span>
                     </div>
                     <div class="text-center">
-                        <h3 class="text-xl font-bold text-slate-900 mb-3">Log Your Monthly Records</h3>
-                        <p class="text-slate-600 leading-relaxed mb-4">Enter meter readings, water bills, and payments. Calculations happen automatically on the server.</p>
-                        <div class="flex flex-col items-center justify-center gap-2">
-                            <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
-                                    <span class="text-xs font-bold text-slate-800">1</span>
-                                </div>
-                                <div class="w-px h-4 bg-slate-200"></div>
-                                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
-                                    <span class="text-xs font-bold text-slate-700">2</span>
-                                </div>
-                                <div class="w-px h-4 bg-slate-200"></div>
-                                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
-                                    <span class="text-xs font-bold text-slate-700">3</span>
-                                </div>
-                            </div>
-                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-3">Log your monthly records</h3>
+                        <p class="text-slate-600 leading-relaxed">Enter meter readings, water bills, and payments. Calculations happen automatically on the server.</p>
                     </div>
                 </div>
                 <!-- Step 3 -->
-                <div class="relative z-10">
+                <div class="relative">
                     <div class="w-12 h-12 rounded-full bg-teal-600 text-white flex items-center justify-center mx-auto mb-6 shadow-lg shadow-teal-500/30 relative z-10">
                         <span class="text-lg font-bold">3</span>
                     </div>
                     <div class="text-center">
-                        <h3 class="text-xl font-bold text-slate-900 mb-3">Track &amp; Analyze</h3>
-                        <p class="text-slate-600 leading-relaxed mb-4">View your dashboard, monitor outstanding balances, and export reports whenever you need them.</p>
-                        <div class="flex items-center justify-center">
-                            <div class="w-10 h-12 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200 text-sm font-bold text-slate-700 border-l-2 border-teal-500">3</div>
-                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-3">Track &amp; analyze</h3>
+                        <p class="text-slate-600 leading-relaxed">View your dashboard, monitor outstanding balances, and export reports whenever you need them.</p>
                     </div>
                 </div>
             </div>
@@ -336,6 +323,7 @@
                     <span class="font-bold text-slate-900">Rent<span class="text-teal-600">Mate</span></span>
                 </div>
                 <p class="text-sm text-slate-500">
+                    &nbsp;
                     <a href="#" class="text-teal-600 hover:text-teal-700">Privacy</a> ·
                     <a href="#" class="text-teal-600 hover:text-teal-700">Terms</a> ·
                     <a href="#" class="text-teal-600 hover:text-teal-700">Contact</a>
