@@ -48,12 +48,23 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 3. Clear existing records if re-seeding (PostgreSQL compatible)
-        DB::statement('SET session_replication_role = \'replica\';');
+        // 3. Clear existing records if re-seeding (Cross-database compatible: MySQL, PostgreSQL, SQLite)
+        $driver = DB::getDriverName();
+        if ($driver === 'pgsql') {
+            DB::statement('SET session_replication_role = \'replica\';');
+        } elseif ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
+
         MonthlyRecord::where('user_id', $user->id)->delete();
         Payment::where('user_id', $user->id)->delete();
         AdditionalExpense::where('user_id', $user->id)->delete();
-        DB::statement('SET session_replication_role = \'origin\';');
+
+        if ($driver === 'pgsql') {
+            DB::statement('SET session_replication_role = \'origin\';');
+        } elseif ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
 
         // Sample data for past months (Jestha 2083 / May 2026 to Mangsir 2083 / November 2026)
         $records = [
