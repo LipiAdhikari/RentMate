@@ -280,14 +280,40 @@
                     </span>
                 </div>
 
+                @php
+                    $todayBs = \App\Services\NepaliCalendar::today();
+                @endphp
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Amount (NPR) *</label>
                         <input type="number" step="0.01" min="1" name="amount" required placeholder="16000.00" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date *</label>
-                        <input type="date" name="payment_date" required value="{{ date('Y-m-d') }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date (BS) *</label>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <select name="bs_year" id="global_bs_year" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-medium text-slate-800">
+                                @for($y = 2086; $y >= 2080; $y--)
+                                    <option value="{{ $y }}" {{ ($todayBs['year'] ?? 2083) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                                @endfor
+                            </select>
+                            <select name="bs_month" id="global_bs_month" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-medium text-slate-800">
+                                @foreach(\App\Services\NepaliCalendar::MONTHS as $mNum => $mInfo)
+                                    <option value="{{ $mNum }}" {{ ($todayBs['month'] ?? 8) == $mNum ? 'selected' : '' }}>
+                                        {{ $mInfo['en'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <select name="bs_day" id="global_bs_day" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-medium text-slate-800">
+                                @for($d = 1; $d <= 32; $d++)
+                                    <option value="{{ $d }}" {{ ($todayBs['day'] ?? 3) == $d ? 'selected' : '' }}>Gate {{ sprintf('%02d', $d) }}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="text-[11px] text-teal-700 font-medium mt-1 flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-teal-600"></i>
+                            <span id="global_bs_label_preview">{{ $todayBs['formatted'] }}</span>
+                        </div>
+                        <input type="hidden" name="payment_date" id="global_payment_date" value="{{ date('Y-m-d') }}">
                     </div>
                 </div>
 
@@ -511,19 +537,32 @@
 
             const y = parseInt(yEl.value);
             const m = parseInt(mEl.value);
-            const d = parseInt(dEl.value);
+            let d = parseInt(dEl.value);
+
+            // Dynamic max days adjustment for selected BS month
+            const maxDays = (bsDaysMap[y] ? bsDaysMap[y][m - 1] : 30);
+            if (d > maxDays) d = maxDays;
+
+            if (dEl.options.length !== maxDays) {
+                dEl.innerHTML = '';
+                for (let day = 1; day <= maxDays; day++) {
+                    const opt = document.createElement('option');
+                    opt.value = day;
+                    opt.text = 'Gate ' + String(day).padStart(2, '0');
+                    if (day === d) opt.selected = true;
+                    dEl.appendChild(opt);
+                }
+            }
 
             const adDate = nepaliBsToAd(y, m, d);
             const hiddenAdInput = document.getElementById('global_payment_date');
             if (hiddenAdInput) hiddenAdInput.value = adDate;
 
             const mInfo = nepaliMonthInfo[m] || { en: 'Month', np: '' };
-            const bsLabel = `${mInfo.en} ${String(d).padStart(2, '0')}, ${y} (${mInfo.np})`;
+            const bsLabel = `${mInfo.en} ${String(d).padStart(2, '0')}, ${y}`;
 
             const bsPreview = document.getElementById('global_bs_label_preview');
-            const adPreview = document.getElementById('global_ad_label_preview');
             if (bsPreview) bsPreview.innerText = bsLabel;
-            if (adPreview) adPreview.innerText = adDate;
         }
     </script>
     @stack('scripts')

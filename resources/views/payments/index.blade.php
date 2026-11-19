@@ -222,8 +222,31 @@
                         <input type="number" step="0.01" min="0.01" name="amount" id="edit_payment_amount" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date *</label>
-                        <input type="date" name="payment_date" id="edit_payment_date" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date (BS) *</label>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <select name="bs_year" id="edit_bs_year" onchange="syncEditBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-medium text-slate-800">
+                                @for($y = 2086; $y >= 2080; $y--)
+                                    <option value="{{ $y }}">{{ $y }}</option>
+                                @endfor
+                            </select>
+                            <select name="bs_month" id="edit_bs_month" onchange="syncEditBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-medium text-slate-800">
+                                @foreach(\App\Services\NepaliCalendar::MONTHS as $mNum => $mInfo)
+                                    <option value="{{ $mNum }}">
+                                        {{ $mInfo['en'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <select name="bs_day" id="edit_bs_day" onchange="syncEditBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-medium text-slate-800">
+                                @for($d = 1; $d <= 32; $d++)
+                                    <option value="{{ $d }}">Gate {{ sprintf('%02d', $d) }}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="text-[11px] text-teal-700 font-medium mt-1 flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-teal-600"></i>
+                            <span id="edit_bs_label_preview">--</span>
+                        </div>
+                        <input type="hidden" name="payment_date" id="edit_payment_date">
                     </div>
                 </div>
 
@@ -275,11 +298,58 @@
         document.getElementById('edit_payment_ref').value = ref || '';
         document.getElementById('edit_payment_notes').value = notes || '';
 
+        if (date && typeof nepaliAdToBs === 'function') {
+            const bs = nepaliAdToBs(date);
+            const yEl = document.getElementById('edit_bs_year');
+            const mEl = document.getElementById('edit_bs_month');
+            const dEl = document.getElementById('edit_bs_day');
+            if (yEl) yEl.value = bs.year;
+            if (mEl) mEl.value = bs.month;
+            if (dEl) dEl.value = bs.day;
+            syncEditBsDate();
+        }
+
         modal.classList.remove('hidden');
         if (window.lucide) window.lucide.createIcons();
 
         if (!window.location.hash.includes('edit-payment')) {
             history.pushState({ modal: 'edit-payment' }, '', '#edit-payment');
+        }
+    }
+
+    function syncEditBsDate() {
+        const yEl = document.getElementById('edit_bs_year');
+        const mEl = document.getElementById('edit_bs_month');
+        const dEl = document.getElementById('edit_bs_day');
+        if (!yEl || !mEl || !dEl) return;
+
+        const y = parseInt(yEl.value);
+        const m = parseInt(mEl.value);
+        let d = parseInt(dEl.value);
+
+        if (typeof nepaliBsToAd === 'function') {
+            const maxDays = (bsDaysMap[y] ? bsDaysMap[y][m - 1] : 30);
+            if (d > maxDays) d = maxDays;
+
+            if (dEl.options.length !== maxDays) {
+                dEl.innerHTML = '';
+                for (let day = 1; day <= maxDays; day++) {
+                    const opt = document.createElement('option');
+                    opt.value = day;
+                    opt.text = 'Gate ' + String(day).padStart(2, '0');
+                    if (day === d) opt.selected = true;
+                    dEl.appendChild(opt);
+                }
+            }
+
+            const adDate = nepaliBsToAd(y, m, d);
+            document.getElementById('edit_payment_date').value = adDate;
+
+            const mInfo = (typeof nepaliMonthInfo !== 'undefined' && nepaliMonthInfo[m]) ? nepaliMonthInfo[m] : { en: 'Month', np: '' };
+            const bsLabel = `${mInfo.en} ${String(d).padStart(2, '0')}, ${y}`;
+
+            const bsPreview = document.getElementById('edit_bs_label_preview');
+            if (bsPreview) bsPreview.innerText = bsLabel;
         }
     }
 
