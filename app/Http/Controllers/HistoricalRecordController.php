@@ -15,7 +15,7 @@ class HistoricalRecordController extends Controller
     public function index(Request $request)
     {
         $userId = auth()->id();
-        $settings = RentalSetting::forUser($userId)->first();
+        $settings = RentalSetting::getActiveForUser($userId);
 
         $query = MonthlyRecord::forUser($userId)
             ->with('payments')
@@ -52,7 +52,7 @@ class HistoricalRecordController extends Controller
 
     public function create()
     {
-        $settings = RentalSetting::forUser(auth()->id())->first();
+        $settings = RentalSetting::getActiveForUser(auth()->id());
 
         // Default to 12 months ago or previous month
         $defaultYear = Carbon::now()->subYear()->year;

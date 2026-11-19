@@ -19,6 +19,15 @@ class HandleProductionErrors
         try {
             return $next($request);
         } catch (\Throwable $e) {
+            // Never intercept standard HTTP & Laravel validation/auth exceptions
+            if ($e instanceof \Illuminate\Validation\ValidationException ||
+                $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface ||
+                $e instanceof \Illuminate\Auth\AuthenticationException ||
+                $e instanceof \Illuminate\Auth\Access\AuthorizationException ||
+                $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                throw $e;
+            }
+
             // Log the actual error for debugging
             Log::error('Production Error: ' . $e->getMessage(), [
                 'exception' => get_class($e),

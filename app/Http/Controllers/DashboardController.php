@@ -16,7 +16,7 @@ class DashboardController extends Controller
     {
         try {
             $userId = auth()->id();
-            $settings = RentalSetting::forUser($userId)->first();
+            $settings = RentalSetting::getActiveForUser($userId);
             $now = Carbon::now();
             $currentYear = $now->year;
             $currentMonth = $now->month;
@@ -60,10 +60,7 @@ class DashboardController extends Controller
             // Unpaid or partially paid months for this user
             $unpaidRecords = MonthlyRecord::forUser($userId)
                 ->with('payments')
-                ->byStatus('unpaid')
-                ->orWhere(function ($query) {
-                    $query->byStatus('partially_paid');
-                })
+                ->whereIn('status', ['unpaid', 'partially_paid'])
                 ->orderBy('record_date', 'asc')
                 ->get();
 

@@ -12,7 +12,7 @@ class WaterBillController extends Controller
     public function index()
     {
         $userId = auth()->id();
-        $settings = RentalSetting::forUser($userId)->first();
+        $settings = RentalSetting::getActiveForUser($userId);
 
         $records = MonthlyRecord::forUser($userId)->orderBy('record_date', 'desc')->get();
 

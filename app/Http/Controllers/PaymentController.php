@@ -147,6 +147,54 @@ class PaymentController extends Controller
         return redirect()->back()->with('success', $msg);
     }
 
+    public function update(Request $request, Payment $payment)
+    {
+        if ($payment->user_id !== auth()->id()) {
+            abort(403, 'You do not own this payment.');
+        }
+
+        $validated = $request->validate([
+            'payment_date' => ['required', 'date'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'payment_method' => ['required', 'in:Cash,eSewa,Khalti,Bank Transfer,Other'],
+            'transaction_reference' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $paymentDate = Carbon::parse($validated['payment_date']);
+        $bsDateInfo = NepaliCalendar::adToBs($paymentDate);
+        $bsPaymentDate = $bsDateInfo['formatted'] . ' (' . $bsDateInfo['month_np'] . ')';
+
+        $targetRecord = $payment->monthlyRecord;
+        $daysLate = 0;
+        if ($targetRecord) {
+            $dueDate = $targetRecord->due_date ?? Carbon::createFromDate($targetRecord->year, $targetRecord->month, 1)->endOfMonth();
+            if ($paymentDate->gt($dueDate)) {
+                $daysLate = abs((int) $dueDate->diffInDays($paymentDate));
+            }
+        }
+
+        DB::transaction(function () use ($payment, $validated, $bsPaymentDate, $daysLate, $targetRecord) {
+            $payment->update([
+                'payment_date' => $validated['payment_date'],
+                'bs_payment_date' => $bsPaymentDate,
+                'amount' => $validated['amount'],
+                'days_late' => $daysLate,
+                'payment_method' => $validated['payment_method'],
+                'transaction_reference' => $validated['transaction_reference'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $targetRecord?->recalculate(true);
+        });
+
+        Cache::forget('payment_summary_' . auth()->id());
+        Cache::forget('dashboard_aggregates_' . auth()->id());
+        Cache::forget('dashboard_paid_' . auth()->id());
+
+        return redirect()->back()->with('success', 'Payment updated successfully.');
+    }
+
     public function destroy(Payment $payment)
     {
         // Ensure user owns this payment

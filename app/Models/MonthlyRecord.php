@@ -149,6 +149,20 @@ class MonthlyRecord extends Model
                 $record->due_date = Carbon::createFromDate($record->year, $record->month, 1)->endOfMonth()->toDateString();
             }
         });
+
+        static::saved(function ($record) {
+            if ($record->user_id) {
+                \Illuminate\Support\Facades\Cache::forget('dashboard_aggregates_' . $record->user_id);
+                \Illuminate\Support\Facades\Cache::forget('dashboard_paid_' . $record->user_id);
+            }
+        });
+
+        static::deleted(function ($record) {
+            if ($record->user_id) {
+                \Illuminate\Support\Facades\Cache::forget('dashboard_aggregates_' . $record->user_id);
+                \Illuminate\Support\Facades\Cache::forget('dashboard_paid_' . $record->user_id);
+            }
+        });
     }
 
     /**

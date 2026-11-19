@@ -92,10 +92,18 @@ class Payment extends Model
 
         static::saved(function ($payment) {
             $payment->monthlyRecord?->recalculate(true);
+            if ($payment->user_id) {
+                \Illuminate\Support\Facades\Cache::forget('dashboard_aggregates_' . $payment->user_id);
+                \Illuminate\Support\Facades\Cache::forget('dashboard_paid_' . $payment->user_id);
+            }
         });
 
         static::deleted(function ($payment) {
             $payment->monthlyRecord?->recalculate(true);
+            if ($payment->user_id) {
+                \Illuminate\Support\Facades\Cache::forget('dashboard_aggregates_' . $payment->user_id);
+                \Illuminate\Support\Facades\Cache::forget('dashboard_paid_' . $payment->user_id);
+            }
         });
     }
 

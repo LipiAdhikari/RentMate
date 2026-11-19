@@ -54,6 +54,14 @@ return Application::configure(basePath: dirname(__DIR__))
             Log::warning('Session expired: ' . $e->getMessage());
             return back()->withErrors(['session' => 'Your session has expired. Please refresh the page and try again.'])->withInput();
         })->render(function (\Throwable $e, $request) {
+            if ($e instanceof \Illuminate\Validation\ValidationException ||
+                $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface ||
+                $e instanceof \Illuminate\Auth\AuthenticationException ||
+                $e instanceof \Illuminate\Auth\Access\AuthorizationException ||
+                $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return null;
+            }
+
             Log::error('Unhandled exception: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),

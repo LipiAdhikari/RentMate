@@ -15,7 +15,7 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         $userId = auth()->id();
-        $settings = RentalSetting::forUser($userId)->first();
+        $settings = RentalSetting::getActiveForUser($userId);
 
         $query = MonthlyRecord::forUser($userId)
             ->with(['payments', 'additionalExpenses'])
@@ -174,7 +174,7 @@ class ReportController extends Controller
     public function exportPdf(Request $request)
     {
         $userId = auth()->id();
-        $settings = RentalSetting::forUser($userId)->first();
+        $settings = RentalSetting::getActiveForUser($userId);
 
         $query = MonthlyRecord::forUser($userId)
             ->with(['payments', 'additionalExpenses'])

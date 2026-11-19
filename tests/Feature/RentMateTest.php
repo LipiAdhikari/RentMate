@@ -521,5 +521,276 @@ class RentMateTest extends TestCase
         $this->assertEquals(8.00, $record->electricity_rate);
         $this->assertEquals(40.00, $record->tenant_water_percentage);
     }
+
+    /**
+     * Complete User Workflow as defined in finalcheck.md Section 3:
+     * - Config: Rent 16,000, Electricity 10/unit, Water 50%
+     * - November record: Prev 1,250, Curr 1,380 -> 130 units -> 1,300 NPR
+     * - Water bill: 600 -> Tenant share 300 NPR
+     * - Total Expense: 17,600 NPR
+     * - 3 Payments: 10,000 + 5,000 + 2,600 = 17,600 NPR
+     * - Fully Paid, Balance 0
+     * - Partial payment month, overpayment, edit payment, delete payment
+     */
+    public function test_complete_user_workflow_scenario_from_finalcheck_spec(): void
+    {
+        // 1. Create November record via HTTP POST
+        $createResponse = $this->post(route('monthly-records.store'), [
+            'year' => 2026,
+            'month' => 11,
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 1250.00,
+            'curr_electricity_reading' => 1380.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 600.00,
+            'tenant_water_percentage' => 50.00,
+            'notes' => 'November 2026 rent',
+        ]);
+        $createResponse->assertRedirect();
+
+        $novRecord = MonthlyRecord::forUser($this->user->id)
+            ->where('year', 2026)
+            ->where('month', 11)
+            ->first();
+
+        $this->assertNotNull($novRecord);
+        $this->assertEquals(130.00, $novRecord->electricity_units);
+        $this->assertEquals(1300.00, $novRecord->electricity_amount);
+        $this->assertEquals(300.00, $novRecord->water_amount);
+        $this->assertEquals(17600.00, $novRecord->total_expenses);
+        $this->assertEquals(0.00, $novRecord->total_paid);
+        $this->assertEquals(17600.00, $novRecord->balance);
+        $this->assertEquals('unpaid', $novRecord->status);
+
+        // 2. Record 3 sequential payments: 10,000, 5,000, 2,600
+        // Payment 1: NPR 10,000
+        $this->post(route('payments.store'), [
+            'monthly_record_id' => $novRecord->id,
+            'amount' => 10000.00,
+            'payment_date' => '2026-11-05',
+            'payment_method' => 'Bank Transfer',
+            'transaction_reference' => 'TXN-NOV-1',
+        ])->assertRedirect();
+
+        $novRecord->refresh();
+        $this->assertEquals(10000.00, $novRecord->total_paid);
+        $this->assertEquals(7600.00, $novRecord->balance);
+        $this->assertEquals('partially_paid', $novRecord->status);
+
+        // Payment 2: NPR 5,000
+        $this->post(route('payments.store'), [
+            'monthly_record_id' => $novRecord->id,
+            'amount' => 5000.00,
+            'payment_date' => '2026-11-12',
+            'payment_method' => 'eSewa',
+            'transaction_reference' => 'TXN-NOV-2',
+        ])->assertRedirect();
+
+        $novRecord->refresh();
+        $this->assertEquals(15000.00, $novRecord->total_paid);
+        $this->assertEquals(2600.00, $novRecord->balance);
+        $this->assertEquals('partially_paid', $novRecord->status);
+
+        // Payment 3: NPR 2,600
+        $this->post(route('payments.store'), [
+            'monthly_record_id' => $novRecord->id,
+            'amount' => 2600.00,
+            'payment_date' => '2026-11-20',
+            'payment_method' => 'Cash',
+            'transaction_reference' => 'TXN-NOV-3',
+        ])->assertRedirect();
+
+        $novRecord->refresh();
+        $this->assertEquals(17600.00, $novRecord->total_paid);
+        $this->assertEquals(0.00, $novRecord->balance);
+        $this->assertEquals('paid', $novRecord->status);
+        $this->assertEquals(3, $novRecord->payments()->count());
+
+        // 3. Test Editing a payment: Change Payment 3 from 2,600 to 2,000 (creates partial payment)
+        $payment3 = $novRecord->payments()->where('transaction_reference', 'TXN-NOV-3')->first();
+        $this->put(route('payments.update', $payment3), [
+            'payment_date' => '2026-11-20',
+            'amount' => 2000.00,
+            'payment_method' => 'Cash',
+            'transaction_reference' => 'TXN-NOV-3-EDITED',
+        ])->assertRedirect();
+
+        $novRecord->refresh();
+        $this->assertEquals(17000.00, $novRecord->total_paid);
+        $this->assertEquals(600.00, $novRecord->balance);
+        $this->assertEquals('partially_paid', $novRecord->status);
+
+        // 4. Test Deleting a payment: Delete Payment 3
+        $this->delete(route('payments.destroy', $payment3))->assertRedirect();
+
+        $novRecord->refresh();
+        $this->assertEquals(15000.00, $novRecord->total_paid);
+        $this->assertEquals(2600.00, $novRecord->balance);
+        $this->assertEquals('partially_paid', $novRecord->status);
+        $this->assertEquals(2, $novRecord->payments()->count());
+    }
+
+    /** Scenario: Electricity readings update endpoint */
+    public function test_electricity_reading_update_endpoint(): void
+    {
+        $record = MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2026,
+            'month' => 4,
+            'record_date' => '2026-04-01',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 500.00,
+            'curr_electricity_reading' => 600.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 800.00,
+            'tenant_water_percentage' => 50.00,
+        ]);
+        $record->recalculate(true);
+
+        $this->assertEquals(100.00, $record->electricity_units);
+        $this->assertEquals(1000.00, $record->electricity_amount);
+
+        // Update electricity reading via controller endpoint
+        $response = $this->put(route('electricity.update-reading', $record), [
+            'prev_electricity_reading' => 500.00,
+            'curr_electricity_reading' => 650.00,
+            'electricity_rate' => 11.00,
+        ]);
+
+        $response->assertRedirect();
+        $record->refresh();
+        $this->assertEquals(150.00, $record->electricity_units);
+        $this->assertEquals(1650.00, $record->electricity_amount);
+        $this->assertEquals(18050.00, $record->total_expenses);
+    }
+
+    /** Scenario: Water bill update endpoint */
+    public function test_water_bill_update_endpoint(): void
+    {
+        $record = MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2026,
+            'month' => 6,
+            'record_date' => '2026-06-01',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 100.00,
+            'curr_electricity_reading' => 100.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 1000.00,
+            'tenant_water_percentage' => 50.00,
+        ]);
+        $record->recalculate(true);
+
+        $this->assertEquals(500.00, $record->water_amount);
+
+        // Update water bill via controller endpoint
+        $response = $this->put(route('water.update-bill', $record), [
+            'total_water_bill' => 1400.00,
+            'tenant_water_percentage' => 40.00,
+        ]);
+
+        $response->assertRedirect();
+        $record->refresh();
+        $this->assertEquals(1400.00, $record->total_water_bill);
+        $this->assertEquals(40.00, $record->tenant_water_percentage);
+        $this->assertEquals(560.00, $record->water_amount);
+        $this->assertEquals(840.00, $record->owner_water_share);
+        $this->assertEquals(1400.00, $record->water_amount + $record->owner_water_share);
+    }
+
+    /** Scenario: Historical records add verified and estimated */
+    public function test_historical_record_creation_verified_and_estimated(): void
+    {
+        // Add verified record
+        $response1 = $this->post(route('historical.store'), [
+            'year' => 2023,
+            'month' => 7,
+            'rent_amount' => 14000.00,
+            'prev_electricity_reading' => 0,
+            'curr_electricity_reading' => 50,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 500.00,
+            'tenant_water_percentage' => 50.00,
+            'is_verified' => 1,
+            'payment_amount' => 14750.00,
+            'payment_method' => 'Cash',
+        ]);
+        $response1->assertRedirect(route('historical.index'));
+
+        $rec1 = MonthlyRecord::forUser($this->user->id)->where('year', 2023)->where('month', 7)->first();
+        $this->assertNotNull($rec1);
+        $this->assertTrue((bool) $rec1->is_historical);
+        $this->assertTrue((bool) $rec1->is_verified);
+        $this->assertEquals('paid', $rec1->status);
+
+        // Add estimated record without fabricating utility readings
+        $response2 = $this->post(route('historical.store'), [
+            'year' => 2023,
+            'month' => 8,
+            'rent_amount' => 14000.00,
+            'electricity_rate' => 10.00,
+            'tenant_water_percentage' => 50.00,
+            'is_verified' => 0,
+            'notes' => 'Electricity & water bills unknown for this month',
+        ]);
+        $response2->assertRedirect(route('historical.index'));
+
+        $rec2 = MonthlyRecord::forUser($this->user->id)->where('year', 2023)->where('month', 8)->first();
+        $this->assertNotNull($rec2);
+        $this->assertTrue((bool) $rec2->is_historical);
+        $this->assertFalse((bool) $rec2->is_verified);
+        $this->assertEquals(14000.00, $rec2->total_expenses);
+    }
+
+    /** Scenario: Reports PDF export returns valid downloadable PDF */
+    public function test_reports_pdf_export_downloads_successfully(): void
+    {
+        MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2026,
+            'month' => 1,
+            'record_date' => '2026-01-01',
+            'rent_amount' => 16000.00,
+            'prev_electricity_reading' => 100.00,
+            'curr_electricity_reading' => 150.00,
+            'electricity_rate' => 10.00,
+            'total_water_bill' => 800.00,
+            'tenant_water_percentage' => 50.00,
+        ])->recalculate(true);
+
+        $response = $this->get(route('reports.export.pdf'));
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    /** Scenario: User Registration and Profile update */
+    public function test_user_registration_creates_account_and_default_settings(): void
+    {
+        $this->post(route('logout'));
+
+        $response = $this->post(route('register.store'), [
+            'name' => 'New Tenant',
+            'email' => 'newtenant@example.com',
+            'password' => 'SecurePass123!',
+            'password_confirmation' => 'SecurePass123!',
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticated();
+
+        $newUser = User::where('email', 'newtenant@example.com')->first();
+        $this->assertNotNull($newUser);
+        $this->assertNotNull($newUser->rentalSetting);
+        $this->assertEquals(16000.00, $newUser->rentalSetting->rent_amount);
+
+        // Update profile
+        $this->put(route('profile.update'), [
+            'name' => 'Updated Tenant Name',
+            'email' => 'newtenant@example.com',
+        ])->assertRedirect(route('profile.show'));
+
+        $newUser->refresh();
+        $this->assertEquals('Updated Tenant Name', $newUser->name);
+    }
 }
 

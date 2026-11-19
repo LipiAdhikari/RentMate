@@ -149,9 +149,14 @@
                                 NPR {{ number_format($pay->amount, 2) }}
                             </td>
                             <td class="py-3.5 px-4 text-right">
-                                <button type="button" onclick="confirmDelete('{{ route('payments.destroy', $pay) }}', 'Delete payment of NPR {{ number_format($pay->amount, 2) }}? Balance for {{ $pay->monthlyRecord ? $pay->monthlyRecord->formatted_month : 'this month' }} will be recalculated.')" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Delete Payment">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
+                                <div class="flex items-center justify-end gap-1">
+                                    <button type="button" onclick="openEditPaymentModal({{ $pay->id }}, '{{ $pay->payment_date->format('Y-m-d') }}', {{ $pay->amount }}, '{{ $pay->payment_method }}', '{{ addslashes($pay->transaction_reference ?? '') }}', '{{ addslashes($pay->notes ?? '') }}')" class="p-1.5 text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition" title="Edit Payment">
+                                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                    </button>
+                                    <button type="button" onclick="confirmDelete('{{ route('payments.destroy', $pay) }}', 'Delete payment of NPR {{ number_format($pay->amount, 2) }}? Balance for {{ $pay->monthlyRecord ? $pay->monthlyRecord->formatted_month : 'this month' }} will be recalculated.')" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Delete Payment">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -174,5 +179,89 @@
         @endif
     </div>
 
+    <!-- Edit Payment Modal -->
+    <div id="edit-payment-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Edit Payment Transaction</h3>
+                        <p class="text-[11px] text-slate-500">Update payment details and recompute balance</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEditPaymentModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="edit-payment-form" method="POST" class="p-6 space-y-4">
+                @csrf
+                @method('PUT')
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Amount (NPR) *</label>
+                        <input type="number" step="0.01" min="0.01" name="amount" id="edit_payment_amount" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date (AD) *</label>
+                        <input type="date" name="payment_date" id="edit_payment_date" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Method *</label>
+                    <select name="payment_method" id="edit_payment_method" required class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-3 py-2 border">
+                        <option value="eSewa">eSewa</option>
+                        <option value="Khalti">Khalti</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash Handover</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Transaction Ref / Cheque No.</label>
+                    <input type="text" name="transaction_reference" id="edit_payment_ref" placeholder="e.g. ESEWA-12345" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Notes / Remarks</label>
+                    <input type="text" name="notes" id="edit_payment_notes" placeholder="e.g. Rent installment" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeEditPaymentModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm">Update Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    function openEditPaymentModal(id, date, amount, method, ref, notes) {
+        const modal = document.getElementById('edit-payment-modal');
+        const form = document.getElementById('edit-payment-form');
+        form.action = `/payments/${id}`;
+
+        document.getElementById('edit_payment_date').value = date;
+        document.getElementById('edit_payment_amount').value = amount;
+        document.getElementById('edit_payment_method').value = method;
+        document.getElementById('edit_payment_ref').value = ref || '';
+        document.getElementById('edit_payment_notes').value = notes || '';
+
+        modal.classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeEditPaymentModal() {
+        document.getElementById('edit-payment-modal').classList.add('hidden');
+    }
+</script>
+@endpush
