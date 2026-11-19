@@ -55,6 +55,50 @@ class NepaliCalendar
     protected const ANCHOR_AD_DATE = '2026-04-14';
 
     /**
+     * Get days in specific BS month
+     */
+    public static function getDaysInBsMonth(int $bsYear, int $bsMonth): int
+    {
+        return self::$bsDays[$bsYear][$bsMonth - 1] ?? 30;
+    }
+
+    /**
+     * Convert BS Date (Year, Month, Day) to AD Date string (Y-m-d)
+     */
+    public static function bsToAd(int $bsYear, int $bsMonth, int $bsDay): string
+    {
+        $anchorYear = self::ANCHOR_BS_YEAR;
+        $anchorDate = Carbon::parse(self::ANCHOR_AD_DATE);
+
+        $maxDays = self::getDaysInBsMonth($bsYear, $bsMonth);
+        $bsDay = max(1, min($bsDay, $maxDays));
+
+        $daysDiff = 0;
+
+        if ($bsYear >= $anchorYear) {
+            for ($y = $anchorYear; $y < $bsYear; $y++) {
+                $daysDiff += array_sum(self::$bsDays[$y] ?? [31,31,32,31,31,31,30,29,30,29,30,30]);
+            }
+            for ($m = 1; $m < $bsMonth; $m++) {
+                $daysDiff += self::$bsDays[$bsYear][$m - 1] ?? 30;
+            }
+            $daysDiff += ($bsDay - 1);
+
+            return $anchorDate->copy()->addDays($daysDiff)->format('Y-m-d');
+        } else {
+            for ($y = $anchorYear - 1; $y > $bsYear; $y--) {
+                $daysDiff += array_sum(self::$bsDays[$y] ?? [31,31,32,31,31,31,30,29,30,29,30,30]);
+            }
+            for ($m = $bsMonth + 1; $m <= 12; $m++) {
+                $daysDiff += self::$bsDays[$bsYear][$m - 1] ?? 30;
+            }
+            $daysDiff += ($maxDays - $bsDay + 1);
+
+            return $anchorDate->copy()->subDays($daysDiff)->format('Y-m-d');
+        }
+    }
+
+    /**
      * Convert an AD Date (Y-m-d) to BS Date array
      */
     public static function adToBs(string|DateTime|Carbon $adDateInput): array

@@ -274,14 +274,69 @@
                     </span>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                @php
+                    $todayBs = \App\Services\NepaliCalendar::today();
+                @endphp
+                <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Amount (NPR) *</label>
-                        <input type="number" step="0.01" min="1" name="amount" required placeholder="16000.00" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                        <input type="number" step="0.01" min="1" name="amount" required placeholder="16000.00" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border font-medium">
                     </div>
+
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date (AD) *</label>
-                        <input type="date" name="payment_date" required value="{{ date('Y-m-d') }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-700">Payment Date (Bikram Sambat / वि.सं.) *</label>
+                            <span class="text-[10px] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/50">नेपाली क्यालेन्डर</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Year (वर्ष)</label>
+                                <select name="bs_year" id="global_bs_year" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
+                                    @for($y = 2080; $y <= 2086; $y++)
+                                        <option value="{{ $y }}" {{ ($todayBs['year'] ?? 2083) == $y ? 'selected' : '' }}>{{ $y }} BS</option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Month (महिना)</label>
+                                <select name="bs_month" id="global_bs_month" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
+                                    <option value="1" {{ ($todayBs['month'] ?? 8) == 1 ? 'selected' : '' }}>01 Baisakh (बैशाख)</option>
+                                    <option value="2" {{ ($todayBs['month'] ?? 8) == 2 ? 'selected' : '' }}>02 Jestha (जेठ)</option>
+                                    <option value="3" {{ ($todayBs['month'] ?? 8) == 3 ? 'selected' : '' }}>03 Ashadh (असार)</option>
+                                    <option value="4" {{ ($todayBs['month'] ?? 8) == 4 ? 'selected' : '' }}>04 Shrawan (साउन)</option>
+                                    <option value="5" {{ ($todayBs['month'] ?? 8) == 5 ? 'selected' : '' }}>05 Bhadra (भदौ)</option>
+                                    <option value="6" {{ ($todayBs['month'] ?? 8) == 6 ? 'selected' : '' }}>06 Ashwin (असोज)</option>
+                                    <option value="7" {{ ($todayBs['month'] ?? 8) == 7 ? 'selected' : '' }}>07 Kartik (कार्तिक)</option>
+                                    <option value="8" {{ ($todayBs['month'] ?? 8) == 8 ? 'selected' : '' }}>08 Mangsir (मंसिर)</option>
+                                    <option value="9" {{ ($todayBs['month'] ?? 8) == 9 ? 'selected' : '' }}>09 Poush (पुष)</option>
+                                    <option value="10" {{ ($todayBs['month'] ?? 8) == 10 ? 'selected' : '' }}>10 Magh (माघ)</option>
+                                    <option value="11" {{ ($todayBs['month'] ?? 8) == 11 ? 'selected' : '' }}>11 Falgun (फागुन)</option>
+                                    <option value="12" {{ ($todayBs['month'] ?? 8) == 12 ? 'selected' : '' }}>12 Chaitra (चैत)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Day (गते)</label>
+                                <select name="bs_day" id="global_bs_day" onchange="syncGlobalBsDate()" class="w-full text-xs rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 bg-white px-2 py-2 border font-semibold text-slate-700">
+                                    @for($d = 1; $d <= 32; $d++)
+                                        <option value="{{ $d }}" {{ ($todayBs['day'] ?? 3) == $d ? 'selected' : '' }}>Gate {{ sprintf('%02d', $d) }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Hidden synced AD payment_date -->
+                        <input type="hidden" name="payment_date" id="global_payment_date" value="{{ date('Y-m-d') }}">
+
+                        <!-- Dynamic Sync Badge -->
+                        <div class="mt-2 flex items-center justify-between px-3 py-1.5 rounded-lg bg-teal-50/90 border border-teal-200/60 text-xs text-teal-900">
+                            <span class="flex items-center gap-1.5 font-medium">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-teal-600 shrink-0"></i>
+                                <span>वि.सं.: <strong id="global_bs_label_preview">{{ $todayBs['formatted'] }} ({{ $todayBs['month_np'] }})</strong></span>
+                            </span>
+                            <span class="text-[11px] text-slate-500 font-mono">
+                                Converted AD: <span id="global_ad_label_preview">{{ date('Y-m-d') }}</span>
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -372,6 +427,121 @@
 
         function closeDeleteModal() {
             document.getElementById('delete-confirm-modal').classList.add('hidden');
+        }
+
+        /* Bikram Sambat (BS) to AD & AD to BS Converter */
+        const bsDaysMap = {
+            2078: [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+            2079: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+            2080: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30],
+            2081: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+            2082: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+            2083: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+            2084: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 30, 30],
+            2085: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+            2086: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30]
+        };
+
+        const nepaliMonthInfo = [
+            null,
+            { en: 'Baisakh', np: 'बैशाख' },
+            { en: 'Jestha', np: 'जेठ' },
+            { en: 'Ashadh', np: 'असार' },
+            { en: 'Shrawan', np: 'साउन' },
+            { en: 'Bhadra', np: 'भदौ' },
+            { en: 'Ashwin', np: 'असोज' },
+            { en: 'Kartik', np: 'कार्तिक' },
+            { en: 'Mangsir', np: 'मंसिर' },
+            { en: 'Poush', np: 'पुष' },
+            { en: 'Magh', np: 'माघ' },
+            { en: 'Falgun', np: 'फागुन' },
+            { en: 'Chaitra', np: 'चैत' }
+        ];
+
+        function nepaliBsToAd(bsYear, bsMonth, bsDay) {
+            const anchorYear = 2083;
+            const anchorDate = new Date(Date.UTC(2026, 3, 14)); // 2026-04-14
+            let diffDays = 0;
+
+            if (bsYear >= anchorYear) {
+                for (let y = anchorYear; y < bsYear; y++) {
+                    const days = (bsDaysMap[y] || [31,31,32,31,31,31,30,29,30,29,30,30]).reduce((a,b)=>a+b, 0);
+                    diffDays += days;
+                }
+                for (let m = 1; m < bsMonth; m++) {
+                    diffDays += (bsDaysMap[bsYear] ? bsDaysMap[bsYear][m-1] : 30);
+                }
+                diffDays += (bsDay - 1);
+                const target = new Date(anchorDate.getTime() + diffDays * 86400000);
+                return target.toISOString().split('T')[0];
+            } else {
+                for (let y = anchorYear - 1; y > bsYear; y--) {
+                    const days = (bsDaysMap[y] || [31,31,32,31,31,31,30,29,30,29,30,30]).reduce((a,b)=>a+b, 0);
+                    diffDays += days;
+                }
+                for (let m = bsMonth + 1; m <= 12; m++) {
+                    diffDays += (bsDaysMap[bsYear] ? bsDaysMap[bsYear][m-1] : 30);
+                }
+                const maxDays = bsDaysMap[bsYear] ? bsDaysMap[bsYear][bsMonth-1] : 30;
+                diffDays += (maxDays - bsDay + 1);
+                const target = new Date(anchorDate.getTime() - diffDays * 86400000);
+                return target.toISOString().split('T')[0];
+            }
+        }
+
+        function nepaliAdToBs(adDateStr) {
+            const anchorDate = new Date(Date.UTC(2026, 3, 14));
+            const parts = adDateStr.split('-');
+            const d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2])));
+            let diffDays = Math.round((d.getTime() - anchorDate.getTime()) / 86400000);
+
+            let bsYear = 2083;
+            let bsMonth = 1;
+            let bsDay = 1 + diffDays;
+
+            if (bsDay > 0) {
+                while (bsDay > (bsDaysMap[bsYear] ? bsDaysMap[bsYear][bsMonth - 1] : 30)) {
+                    bsDay -= (bsDaysMap[bsYear] ? bsDaysMap[bsYear][bsMonth - 1] : 30);
+                    bsMonth++;
+                    if (bsMonth > 12) {
+                        bsMonth = 1;
+                        bsYear++;
+                    }
+                }
+            } else {
+                while (bsDay <= 0) {
+                    bsMonth--;
+                    if (bsMonth < 1) {
+                        bsMonth = 12;
+                        bsYear--;
+                    }
+                    bsDay += (bsDaysMap[bsYear] ? bsDaysMap[bsYear][bsMonth - 1] : 30);
+                }
+            }
+            return { year: bsYear, month: bsMonth, day: bsDay };
+        }
+
+        function syncGlobalBsDate() {
+            const yEl = document.getElementById('global_bs_year');
+            const mEl = document.getElementById('global_bs_month');
+            const dEl = document.getElementById('global_bs_day');
+            if (!yEl || !mEl || !dEl) return;
+
+            const y = parseInt(yEl.value);
+            const m = parseInt(mEl.value);
+            const d = parseInt(dEl.value);
+
+            const adDate = nepaliBsToAd(y, m, d);
+            const hiddenAdInput = document.getElementById('global_payment_date');
+            if (hiddenAdInput) hiddenAdInput.value = adDate;
+
+            const mInfo = nepaliMonthInfo[m] || { en: 'Month', np: '' };
+            const bsLabel = `${mInfo.en} ${String(d).padStart(2, '0')}, ${y} (${mInfo.np})`;
+
+            const bsPreview = document.getElementById('global_bs_label_preview');
+            const adPreview = document.getElementById('global_ad_label_preview');
+            if (bsPreview) bsPreview.innerText = bsLabel;
+            if (adPreview) adPreview.innerText = adDate;
         }
     </script>
     @stack('scripts')

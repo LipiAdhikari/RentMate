@@ -72,6 +72,16 @@ class PaymentController extends Controller
 
     public function store(Request $request)
     {
+        // Support BS calendar inputs (Year, Month, Day)
+        if ($request->filled('bs_year') && $request->filled('bs_month') && $request->filled('bs_day')) {
+            $adDateStr = NepaliCalendar::bsToAd(
+                (int) $request->bs_year,
+                (int) $request->bs_month,
+                (int) $request->bs_day
+            );
+            $request->merge(['payment_date' => $adDateStr]);
+        }
+
         $validated = $request->validate([
             'monthly_record_id' => ['nullable'],
             'payment_date' => ['required', 'date'],
@@ -151,6 +161,16 @@ class PaymentController extends Controller
     {
         if ($payment->user_id !== auth()->id()) {
             abort(403, 'You do not own this payment.');
+        }
+
+        // Support BS calendar inputs (Year, Month, Day)
+        if ($request->filled('bs_year') && $request->filled('bs_month') && $request->filled('bs_day')) {
+            $adDateStr = NepaliCalendar::bsToAd(
+                (int) $request->bs_year,
+                (int) $request->bs_month,
+                (int) $request->bs_day
+            );
+            $request->merge(['payment_date' => $adDateStr]);
         }
 
         $validated = $request->validate([

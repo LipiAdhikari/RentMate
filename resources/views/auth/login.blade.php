@@ -30,7 +30,7 @@
 <!-- ============================================
      MAIN CONTENT - Centered auth card
 ============================================ -->
-<main class="flex-1 w-full max-w-md mx-auto py-12">
+<main class="flex-1 w-full max-w-md mx-auto py-8 px-4 flex flex-col justify-center">
     <div class="w-full bg-white/90 backdrop-blur-md rounded-3xl border border-slate-200/80 p-8 sm:p-12 shadow-2xl relative overflow-hidden">
         <!-- Decorative gradient blobs -->
         <div class="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -mt-16 -mr-16"></div>
@@ -112,10 +112,14 @@
                 <a href="{{ route('register') }}" class="font-semibold text-teal-600 hover:text-teal-700 transition">Create one</a>
             </p>
 
-            <hr class="relative my-6">
-            <span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-white px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                Or continue with
-            </span>
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-slate-200"></div>
+                </div>
+                <div class="relative flex justify-center text-[10px] uppercase">
+                    <span class="bg-white px-2 font-semibold text-slate-400 tracking-wider">Or continue with</span>
+                </div>
+            </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <button type="button" class="w-full py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-xs font-medium text-slate-700 transition-all flex items-center justify-center gap-2">

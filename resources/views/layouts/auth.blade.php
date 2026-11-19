@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-50">
+<html lang="en" class="min-h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,7 @@
     </style>
     @stack('styles')
 </head>
-<body class="h-full flex flex-col text-slate-900 antialiased font-sans">
+<body class="min-h-screen flex flex-col text-slate-900 antialiased font-sans overflow-y-auto">
 
     @yield('content')
 

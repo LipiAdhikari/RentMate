@@ -323,6 +323,20 @@ class RentMateTest extends TestCase
         $this->assertEquals(8, $bs['month']); // Mangsir
         $this->assertEquals('Mangsir', $bs['month_en']);
         $this->assertEquals('मंसिर', $bs['month_np']);
+
+        // Verify BS to AD conversion accuracy
+        $this->assertEquals('2026-11-18', NepaliCalendar::bsToAd(2083, 8, 2));
+        $this->assertEquals('2026-11-19', NepaliCalendar::bsToAd(2083, 8, 3));
+        $this->assertEquals('2026-04-14', NepaliCalendar::bsToAd(2083, 1, 1));
+        $this->assertEquals('2026-04-13', NepaliCalendar::bsToAd(2082, 12, 30));
+
+        // Full round-trip test: adToBs -> bsToAd gives original date
+        $testDates = ['2026-01-15', '2026-04-14', '2026-11-18', '2026-11-19', '2027-02-10'];
+        foreach ($testDates as $adDate) {
+            $convertedBs = NepaliCalendar::adToBs($adDate);
+            $backToAd = NepaliCalendar::bsToAd($convertedBs['year'], $convertedBs['month'], $convertedBs['day']);
+            $this->assertEquals($adDate, $backToAd, "Failed round-trip for date {$adDate}");
+        }
     }
 
     /** Smoke tests for all routes */
@@ -791,6 +805,60 @@ class RentMateTest extends TestCase
 
         $newUser->refresh();
         $this->assertEquals('Updated Tenant Name', $newUser->name);
+    }
+
+    /** Scenario: Record payment using BS calendar inputs */
+    public function test_record_payment_using_bs_calendar_fields(): void
+    {
+        $record = MonthlyRecord::create([
+            'user_id' => $this->user->id,
+            'year' => 2026,
+            'month' => 11,
+            'bs_year' => 2083,
+            'bs_month' => 8,
+            'record_date' => '2026-11-01',
+            'due_date' => '2026-11-30',
+            'rent_amount' => 16000.00,
+        ]);
+        $record->recalculate(true);
+
+        // Submit payment with BS year 2083, Mangsir (8), Day 3
+        $response = $this->post(route('payments.store'), [
+            'monthly_record_id' => $record->id,
+            'amount' => 16000.00,
+            'bs_year' => 2083,
+            'bs_month' => 8,
+            'bs_day' => 3,
+            'payment_method' => 'eSewa',
+            'transaction_reference' => 'BS-PAY-MANGSIR3',
+        ]);
+
+        $response->assertRedirect();
+        $record->refresh();
+        $payment = $record->payments()->where('transaction_reference', 'BS-PAY-MANGSIR3')->first();
+        $this->assertNotNull($payment);
+        $this->assertEquals('2026-11-19', $payment->payment_date->format('Y-m-d'));
+        $this->assertStringContainsString('Mangsir 03, 2083', $payment->bs_payment_date);
+        $this->assertEquals('paid', $record->status);
+    }
+
+    /** Scenario: Register page back button redirects to landing page */
+    public function test_register_page_back_button_points_to_landing_page(): void
+    {
+        $response = $this->get(route('register'));
+        $response->assertOk();
+        $landingUrl = route('landing');
+        $response->assertSee('href="' . $landingUrl . '"', false);
+    }
+
+    /** Scenario: Login page renders proper divider structure */
+    public function test_login_page_renders_clean_divider(): void
+    {
+        $response = $this->get(route('login'));
+        $response->assertOk();
+        $response->assertSee('Or continue with');
+        // Ensure hr is not relative with floating span
+        $response->assertDontSee('<hr class="relative my-6">', false);
     }
 }
 
