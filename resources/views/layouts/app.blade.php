@@ -241,11 +241,16 @@
     </div>
 
     <!-- Global Record Payment Modal with Auto-Detection & Dual Calendars -->
-    <div id="global-payment-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
+    <div id="global-payment-modal" onclick="if(event.target === this) closeGlobalPaymentModal()" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+            <!-- Modal Header with Prominent Back Button -->
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/90 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <button type="button" onclick="closeGlobalPaymentModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition shadow-sm" title="Go Back">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                        <span>Back</span>
+                    </button>
+                    <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
                         <i data-lucide="wallet" class="w-4 h-4"></i>
                     </div>
                     <div>
@@ -253,11 +258,11 @@
                         <p class="text-[11px] text-slate-500">Auto-detects paid rent & late days (e.g. Jan rent paid Feb 15)</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeGlobalPaymentModal()" class="text-slate-400 hover:text-slate-600">
+                <button type="button" onclick="closeGlobalPaymentModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Close">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            <form action="{{ route('payments.store') }}" method="POST" class="p-6 space-y-4">
+            <form action="{{ route('payments.store') }}" method="POST" class="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
                 @csrf
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Rental Month to Clear *</label>
@@ -361,9 +366,12 @@
                     <input type="text" name="notes" placeholder="e.g. January rent cleared late on Feb 15" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
                 </div>
 
-                <div class="pt-2 flex items-center justify-end gap-2">
-                    <button type="button" onclick="closeGlobalPaymentModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
-                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm">Save & Detect Clearance</button>
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                    <button type="button" onclick="closeGlobalPaymentModal()" class="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                        <span>Back</span>
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition">Save & Detect Clearance</button>
                 </div>
             </form>
         </div>
@@ -408,11 +416,39 @@
             }
             modal.classList.remove('hidden');
             if (window.lucide) window.lucide.createIcons();
+
+            if (!window.location.hash.includes('record-payment')) {
+                history.pushState({ modal: 'record-payment' }, '', '#record-payment');
+            }
         }
 
-        function closeGlobalPaymentModal() {
-            document.getElementById('global-payment-modal').classList.add('hidden');
+        function closeGlobalPaymentModal(viaPopState = false) {
+            const modal = document.getElementById('global-payment-modal');
+            if (modal) modal.classList.add('hidden');
+            if (!viaPopState && window.location.hash.includes('record-payment')) {
+                history.back();
+            }
         }
+
+        // Close modals on browser / hardware Back button
+        window.addEventListener('popstate', function() {
+            closeGlobalPaymentModal(true);
+            if (typeof closeEditPaymentModal === 'function') {
+                closeEditPaymentModal(true);
+            }
+            closeDeleteModal(true);
+        });
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeGlobalPaymentModal();
+                if (typeof closeEditPaymentModal === 'function') {
+                    closeEditPaymentModal();
+                }
+                closeDeleteModal();
+            }
+        });
 
         function confirmDelete(actionUrl, message = null) {
             const modal = document.getElementById('delete-confirm-modal');

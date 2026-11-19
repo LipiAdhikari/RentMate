@@ -6,6 +6,18 @@
 @section('content')
 <div class="space-y-6">
 
+    <!-- Top Action / Back to Dashboard Bar -->
+    <div class="flex items-center justify-between">
+        <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-teal-600 bg-white border border-slate-200 rounded-xl hover:border-teal-300 transition shadow-sm">
+            <i data-lucide="arrow-left" class="w-4 h-4 text-slate-500"></i>
+            <span>Back to Dashboard</span>
+        </a>
+        <button type="button" onclick="openGlobalPaymentModal()" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Record New Payment</span>
+        </button>
+    </div>
+
     <!-- Payment Breakdown Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
@@ -180,11 +192,15 @@
     </div>
 
     <!-- Edit Payment Modal -->
-    <div id="edit-payment-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
+    <div id="edit-payment-modal" onclick="if(event.target === this) closeEditPaymentModal()" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/90 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <button type="button" onclick="closeEditPaymentModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition shadow-sm" title="Go Back">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                        <span>Back</span>
+                    </button>
+                    <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
                         <i data-lucide="edit-3" class="w-4 h-4"></i>
                     </div>
                     <div>
@@ -192,11 +208,11 @@
                         <p class="text-[11px] text-slate-500">Update payment details and recompute balance</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeEditPaymentModal()" class="text-slate-400 hover:text-slate-600">
+                <button type="button" onclick="closeEditPaymentModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Close">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            <form id="edit-payment-form" method="POST" class="p-6 space-y-4">
+            <form id="edit-payment-form" method="POST" class="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
                 @csrf
                 @method('PUT')
 
@@ -284,9 +300,12 @@
                     <input type="text" name="notes" id="edit_payment_notes" placeholder="e.g. Rent installment" class="w-full text-sm rounded-lg border-slate-300 focus:ring-teal-500 focus:border-teal-500 px-3 py-2 border">
                 </div>
 
-                <div class="pt-2 flex items-center justify-end gap-2">
-                    <button type="button" onclick="closeEditPaymentModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
-                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm">Update Payment</button>
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                    <button type="button" onclick="closeEditPaymentModal()" class="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                        <span>Back</span>
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition">Update Payment</button>
                 </div>
             </form>
         </div>
@@ -321,6 +340,10 @@
 
         modal.classList.remove('hidden');
         if (window.lucide) window.lucide.createIcons();
+
+        if (!window.location.hash.includes('edit-payment')) {
+            history.pushState({ modal: 'edit-payment' }, '', '#edit-payment');
+        }
     }
 
     function syncEditBsDate() {
@@ -347,8 +370,12 @@
         }
     }
 
-    function closeEditPaymentModal() {
-        document.getElementById('edit-payment-modal').classList.add('hidden');
+    function closeEditPaymentModal(viaPopState = false) {
+        const modal = document.getElementById('edit-payment-modal');
+        if (modal) modal.classList.add('hidden');
+        if (!viaPopState && window.location.hash.includes('edit-payment')) {
+            history.back();
+        }
     }
 </script>
 @endpush

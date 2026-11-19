@@ -860,5 +860,21 @@ class RentMateTest extends TestCase
         // Ensure hr is not relative with floating span
         $response->assertDontSee('<hr class="relative my-6">', false);
     }
+
+    /** Scenario: Record Payment modal and Payments index page have clear Back actions */
+    public function test_record_payment_and_payments_page_have_back_actions(): void
+    {
+        // 1. Dashboard page renders global-payment-modal with prominent Back button
+        $dashResponse = $this->get(route('dashboard'));
+        $dashResponse->assertOk();
+        $dashResponse->assertSee('global-payment-modal');
+        $dashResponse->assertSee('Back');
+
+        // 2. Payments page has Back to Dashboard navigation
+        $payResponse = $this->get(route('payments.index'));
+        $payResponse->assertOk();
+        $payResponse->assertSee('Back to Dashboard');
+        $payResponse->assertSee(route('dashboard'));
+    }
 }
 
