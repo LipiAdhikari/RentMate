@@ -842,13 +842,15 @@ class RentMateTest extends TestCase
         $this->assertEquals('paid', $record->status);
     }
 
-    /** Scenario: Register page back button redirects to landing page */
+    /** Scenario: Register page back button redirects to landing page and has clean name placeholder */
     public function test_register_page_back_button_points_to_landing_page(): void
     {
         $response = $this->get(route('register'));
         $response->assertOk();
         $landingUrl = route('landing');
         $response->assertSee('href="' . $landingUrl . '"', false);
+        $response->assertSee('placeholder="Your Name"', false);
+        $response->assertDontSee('Sajan Poudel');
     }
 
     /** Scenario: Login page renders proper divider structure */

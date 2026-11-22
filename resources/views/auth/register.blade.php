@@ -63,7 +63,7 @@
                 <label class="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wider">Full Name</label>
                 <input type="text" name="name" required value="{{ old('name') }}"
                     class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 focus:bg-white outline-none transition-all text-sm text-slate-900 placeholder-slate-400"
-                    placeholder="e.g. Sajan Poudel">
+                    placeholder="Your Name">
             </div>
 
             <!-- Email -->
