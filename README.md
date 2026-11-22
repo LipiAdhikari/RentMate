@@ -28,11 +28,15 @@ A modern, robust web application built with **PHP 8.2+**, **Laravel 12**, **MySQ
    - Detailed statement views with printable receipts.
    - Strict multi-tenant data isolation.
 
-4. **Electricity Meter Tracker**:
+4. **Flexible Electricity Billing System**:
+   - Multi-month flexible billing periods (e.g. 1, 2, 3, 4, 5+ months like September–December or January–May).
    - Units Consumed = Current Reading - Previous Reading.
    - Electricity Bill = Units × Electricity Rate.
    - Form validation prevents current reading from being lower than previous reading.
-   - Quick-update reading endpoints and historical consumption analytics.
+   - Independent electricity payment tracking (supports partial payments, multiple installments, and methods).
+   - Optional monthly expense allocation linking multi-month bills to individual rental months without inflating or duplicating costs.
+   - Standalone electricity payments remain completely separate from monthly house rent settlements.
+   - Quick-update reading endpoints and historical consumption trend analytics.
 
 5. **Water Bill Sharing (Configurable Split)**:
    - Configurable tenant/owner split percentage (Default: 50% tenant, 50% landlord).
@@ -117,6 +121,9 @@ RentMate uses normalized tables with multi-tenant scoping and `DECIMAL(10,2)` fi
   - Unique composite index: `['user_id', 'year', 'month']` prevents duplicate records per tenancy.
 - **`payments`**: Individual transactions tied to monthly records (`payment_date`, `bs_payment_date`, `amount`, `payment_method`, `transaction_reference`).
 - **`additional_expenses`**: Itemized miscellaneous expenses (waste management, repairs, internet).
+- **`electricity_bills`**: Flexible billing periods covering 1 to 5+ months (`billing_period_start`, `billing_period_end`, readings, units, rate, total, paid, balance, status).
+- **`electricity_bill_allocations`**: Optional link allocating a portion of a multi-month electricity bill to covered monthly records without duplicating original amounts.
+- **`electricity_payments`**: Standalone payments specifically against electricity bills, decoupled from monthly house rent settlements.
 
 ---
 

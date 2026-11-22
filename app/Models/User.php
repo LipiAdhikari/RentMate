@@ -79,4 +79,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(AdditionalExpense::class);
     }
+
+    /**
+     * Get the electricity bills for the user.
+     */
+    public function electricityBills(): HasMany
+    {
+        return $this->hasMany(ElectricityBill::class);
+    }
+
+    /**
+     * Get the electricity payments for the user.
+     */
+    public function electricityPayments(): HasMany
+    {
+        return $this->hasMany(ElectricityPayment::class);
+    }
 }

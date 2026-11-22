@@ -43,8 +43,13 @@ Route::middleware('auth')->group(function () {
     // Monthly Records (CRUD)
     Route::resource('monthly-records', MonthlyRecordController::class);
 
-    // Electricity Tracker
+    // Flexible Electricity Billing System
     Route::get('/electricity', [ElectricityController::class, 'index'])->name('electricity.index');
+    Route::post('/electricity/bills', [ElectricityController::class, 'store'])->name('electricity.bills.store');
+    Route::put('/electricity/bills/{electricityBill}', [ElectricityController::class, 'update'])->name('electricity.bills.update');
+    Route::delete('/electricity/bills/{electricityBill}', [ElectricityController::class, 'destroy'])->name('electricity.bills.destroy');
+    Route::post('/electricity/bills/{electricityBill}/payments', [ElectricityController::class, 'storePayment'])->name('electricity.bills.payments.store');
+    Route::delete('/electricity/payments/{payment}', [ElectricityController::class, 'destroyPayment'])->name('electricity.payments.destroy');
     Route::put('/electricity/{monthlyRecord}', [ElectricityController::class, 'updateReading'])->name('electricity.update-reading');
 
     // Water Bill Tracker

@@ -80,6 +80,18 @@ class MonthlyRecord extends Model
         return $this->hasMany(AdditionalExpense::class);
     }
 
+    public function electricityBillAllocations(): HasMany
+    {
+        return $this->hasMany(ElectricityBillAllocation::class, 'monthly_record_id');
+    }
+
+    public function electricityBills()
+    {
+        return $this->belongsToMany(ElectricityBill::class, 'electricity_bill_allocations', 'monthly_record_id', 'electricity_bill_id')
+            ->withPivot('allocated_amount', 'notes')
+            ->withTimestamps();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -171,12 +183,16 @@ class MonthlyRecord extends Model
     public function recalculate(bool $save = false): self
     {
         // 1. Electricity calculation
-        if ($this->curr_electricity_reading >= $this->prev_electricity_reading) {
-            $this->electricity_units = (float)$this->curr_electricity_reading - (float)$this->prev_electricity_reading;
+        if ($this->exists && $this->electricityBillAllocations()->exists()) {
+            $this->electricity_amount = round((float)$this->electricityBillAllocations()->sum('allocated_amount'), 2);
         } else {
-            $this->electricity_units = 0.00;
+            if ($this->curr_electricity_reading >= $this->prev_electricity_reading) {
+                $this->electricity_units = (float)$this->curr_electricity_reading - (float)$this->prev_electricity_reading;
+            } else {
+                $this->electricity_units = 0.00;
+            }
+            $this->electricity_amount = round((float)$this->electricity_units * (float)$this->electricity_rate, 2);
         }
-        $this->electricity_amount = round((float)$this->electricity_units * (float)$this->electricity_rate, 2);
 
         // 2. Water calculation
         $tenantPct = (float)$this->tenant_water_percentage;
